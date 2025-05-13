@@ -24,3 +24,24 @@ def generate_diverse_cells(n=20):
         ))
 
     return cells
+
+def generate_balanced_cells():
+    tag_pool = {
+        "時間": ["朝", "夜", "未来", "昨日"],
+        "空間": ["都市", "海", "森", "部屋"],
+        "感情": ["喜", "怒", "哀", "楽"],
+        "行為": ["見る", "歩く", "考える", "触れる"],
+        "対象": ["人", "動物", "機械", "言葉"]
+    }
+
+    cells = []
+    for cat, tags in tag_pool.items():
+        for i in range(2):  # 各カテゴリから2セル
+            selected_tags = random.sample(tags, k=2)
+            cells.append(Cell(
+                id=f"{cat[:2]}_{i}",
+                position=(len(cells) // 5, len(cells) % 5),
+                activation=round(random.uniform(0.4, 0.9), 2),
+                meaning_tags=selected_tags
+            ))
+    return cells

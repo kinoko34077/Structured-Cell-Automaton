@@ -37,3 +37,26 @@ def evolve_generation(syntaxes: List[Syntax], top_k=2, mutation_rate=0.3) -> Lis
             new_generation.append(mutated)
 
     return new_generation
+
+def crossover_tags(s1: Syntax, s2: Syntax, cell_dict: dict) -> Syntax:
+    from random import sample
+
+    # タグの交差
+    combined_tags = list(set(s1.tags + s2.tags))
+    selected_tags = sample(combined_tags, min(4, len(combined_tags)))
+
+    # タグに近いセルを選出
+    matching_cells = [
+        c for c in cell_dict.values()
+        if any(tag in c.meaning_tags for tag in selected_tags)
+    ]
+
+    selected_cells = sample(matching_cells, min(3, len(matching_cells)))
+    sid = str(uuid.uuid4())
+
+    return Syntax(
+        sid=sid,
+        cell_ids=[c.id for c in selected_cells],
+        tags=selected_tags,
+        parent_sid=f"{s1.sid}&{s2.sid}"
+    )
