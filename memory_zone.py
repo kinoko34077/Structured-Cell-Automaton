@@ -28,3 +28,11 @@ class MemoryZone:
                     syn.score = score  # 更新
                     candidates.append(syn)
         return candidates
+
+def store(self, syntax: Syntax):
+    if syntax.sid not in self.memory:
+        self.memory[syntax.sid] = {
+            "syntax": syntax,
+            "timestamp": time.time(),
+            "score": syntax.score
+        }

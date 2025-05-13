@@ -25,7 +25,7 @@ def visualize_syntax_clusters(syntaxes, tag_index: dict, use_streamlit: bool = F
                 G.add_edge(syntaxes[i].sid[:8], syntaxes[j].sid[:8], weight=sim)
 
     pos = nx.spring_layout(G, seed=42)
-    fig = plt.figure(figsize=(8, 6))  # ← 明示的に fig を定義
+    fig = plt.figure(figsize=(5, 4))  # ← 明示的に fig を定義
     nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=1000, font_size=10)
     plt.title("Semantic Cluster Map (構文意味ネットワーク)")
 
