@@ -14,7 +14,6 @@ def set_japanese_font():
     for font in preferred_fonts:
         if font in available_fonts:
             plt.rcParams['font.family'] = font
-            print(f"✅ 使用フォント: {font}")
             return fm.findfont(font)
     print("⚠ 日本語フォントが見つかりません。")
     return None
