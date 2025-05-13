@@ -1,0 +1,3 @@
+{"id": "c1", "position": [0, 0], "syntax_id": null, "activation": 0.7, "meaning_tags": ["名詞", "動物"], "history": []}
+{"id": "c2", "position": [0, 1], "syntax_id": null, "activation": 0.5, "meaning_tags": ["動詞", "移動"], "history": []}
+{"id": "c3", "position": [0, 2], "syntax_id": null, "activation": 0.3, "meaning_tags": ["助詞"], "history": []}
