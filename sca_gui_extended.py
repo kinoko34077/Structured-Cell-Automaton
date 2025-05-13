@@ -1,0 +1,205 @@
+# ✅ 実装フェーズ: 7-A-1-α｜本格運用用GUIへの移行＋保存機能実装
+# --------------------------------------------------------
+# ▶ 概要:
+# - セル数・世代数・Top-K交叉数をGUIで指定可能に
+# - quicksave.pyによる進化状態の保存／読込機能を追加
+
+import streamlit as st
+import os
+from Cell import Cell
+from Syntax import Syntax
+from syntax_extractor import extract_syntax_from_cells
+from scoring import evaluate_syntax
+from evolver import evolve_generation_with_tags
+from output_zone import OutputZone
+from linearizer import linearize_syntax
+from memory_zone import MemoryZone
+from clustering import cluster_syntaxes_by_tags
+from visualizer import visualize_syntax_clusters
+from think_loop import simulate_thought_cycle
+from sca_data import generate_balanced_cells
+from tagging import map_sentence_to_tags, expand_tags
+from genealogy import draw_syntax_genealogy
+from tag_network import draw_tag_cooccurrence_network
+from scoremap import draw_score_heatmap
+import quicksave
+
+st.set_page_config(page_title="SCA GUI+", layout="wide")
+st.title("🧠 SCA 構文セル・オートマトン GUI+ (本格実験版)")
+
+# =========================
+# 📊 パラメータ選択 + 読込／保存UI統合
+# =========================
+st.sidebar.header("⚙️ 実験パラメータ")
+
+num_cells = st.sidebar.slider("セル数", 10, 100, 20)
+num_generations = st.sidebar.slider("進化世代数", 1, 50, 5)
+top_k = st.sidebar.slider("交叉対象Top-K", 2, 10, 4)
+
+st.sidebar.subheader("💾 セル・構文の読込／保存")
+save_path = st.sidebar.text_input("保存ファイル名（拡張子不要）", "sca_save")
+load_flag = st.sidebar.checkbox("保存データから読込")
+
+# =========================
+# 💾 状態の初期化／復元
+# =========================
+if 'total_generations' not in st.session_state:
+    st.session_state.total_generations = 0
+
+if load_flag:
+    cell_file = f"{save_path}_cells.jsonl"
+    syntax_file = f"{save_path}_syntax.jsonl"
+    meta_file = f"{save_path}_meta.json"
+    if os.path.exists(cell_file) and os.path.exists(syntax_file):
+        initial_cells = quicksave.load_cells_from_jsonl(cell_file)
+        syntax_pool = quicksave.load_syntaxes_from_jsonl(syntax_file)
+        if os.path.exists(meta_file):
+            meta = quicksave.load_metadata(meta_file)
+            st.session_state.total_generations = meta.get("total_generations", 0)
+        st.success(f"✅ '{save_path}' を読込完了 / 🧮 累計世代数: {st.session_state.total_generations}")
+    else:
+        st.warning("❌ ファイルが見つかりません。新規生成に切替")
+        initial_cells = generate_balanced_cells(n=num_cells)
+        syntax_pool = extract_syntax_from_cells(initial_cells)
+else:
+    initial_cells = generate_balanced_cells(n=num_cells)
+    syntax_pool = extract_syntax_from_cells(initial_cells)
+
+st.markdown(f"🧮 累計進化世代数：**{st.session_state.total_generations}**")
+
+# セル情報表示
+cell_dict = {c.id: c for c in initial_cells}
+st.subheader("🧬 セル情報")
+for c in initial_cells:
+    st.write(c)
+
+# スコア評価
+for syn in syntax_pool:
+    evaluate_syntax(syn, cell_dict, memory_pool=syntax_pool)
+
+# =========================
+# 🔁 進化操作＋出力
+# =========================
+ost = OutputZone(capacity=3, activation_threshold=0.5)
+emitted = []
+mz = MemoryZone()
+
+if st.button("▶ 構文進化→評価→発話"):
+    generation = syntax_pool.copy()
+    for syn in generation:
+        mz.store(syn)
+
+    for _ in range(num_generations):
+        for syn in generation:
+            evaluate_syntax(syn, cell_dict)
+            ost.add_syntax(syn)
+            mz.store(syn)
+        if ost.should_emit():
+            emitted += ost.emit()
+            break
+        generation = evolve_generation_with_tags(generation, cell_dict, top_k=top_k)
+        st.session_state.total_generations += 1
+
+# 出力表示
+st.markdown(f"🧮 累計進化世代数：**{st.session_state.total_generations}**")
+if emitted:
+    st.subheader("🗣️ 発話構文")
+    for syn in emitted:
+        mz.store(syn)
+        st.markdown(f"**{syn.sid[:8]}** → {linearize_syntax(syn, cell_dict)}")
+
+# =========================
+# 🧠 思考ループ実行
+# =========================
+if st.button("🔄 内的思考ループ"):
+    emitted = simulate_thought_cycle(emitted, cell_dict, mz, ost)
+    if emitted:
+        st.subheader("🧠 発話構文（思考ループ）")
+        for syn in emitted:
+            st.markdown(f"→ {linearize_syntax(syn, cell_dict)}")
+    else:
+        st.warning("思考ループからの発話はありませんでした。")
+
+# =========================
+# 📊 各種可視化
+# =========================
+st.subheader("📍 Semantic Cluster Map")
+all_tags = sorted(set(tag for syn in syntax_pool for tag in syn.tags))
+tag_index = {tag: i for i, tag in enumerate(all_tags)}
+visualize_syntax_clusters(syntax_pool, tag_index, use_streamlit=True)
+
+draw_syntax_genealogy(syntax_pool + emitted, use_streamlit=True)
+draw_tag_cooccurrence_network(syntax_pool + emitted, use_streamlit=True)
+if emitted:
+    draw_score_heatmap(emitted, all_tags, use_streamlit=True)
+
+# ----------------------------------------
+# 🔻構文淘汰セクション
+# ----------------------------------------
+
+st.subheader("🧹 構文淘汰ツール")
+
+# 個別淘汰
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    if st.button("スコア淘汰（<0.3）"):
+        mz.prune_by_score(min_score=0.3)
+        st.success("スコアによる構文淘汰を実行しました。")
+
+with col2:
+    if st.button("時間淘汰（60秒以上経過）"):
+        mz.prune_by_age(age_limit=60)
+        st.success("時間ベースで古い構文を淘汰しました。")
+
+with col3:
+    if st.button("類似構文淘汰（閾値=0.9）"):
+        mz.prune_by_similarity(threshold=0.9)
+        st.success("類似タグを持つ冗長構文を圧縮しました。")
+
+# 自動最適化（複合条件）
+if st.button("自動最適化（複合条件）"):
+    mz.auto_optimize(score_thresh=0.3, age_limit=60, similarity_thresh=0.9)
+    st.success("記憶圏の自動最適化を実行しました。")
+
+
+# =========================
+# 💾 保存処理
+# =========================
+import quicksave
+
+st.subheader("構文状態の保存・復元")
+
+save_name = st.text_input("保存ファイル名（例：save_001）", value="save_001")
+
+col1, col2 = st.columns(2)
+with col1:
+    if st.button("📥 セル＆構文を保存"):
+        quicksave.save_cells_to_jsonl(initial_cells, f"{save_name}_cells.jsonl")
+        quicksave.save_syntaxes_to_jsonl(syntax_pool + emitted, f"{save_name}_syntax.jsonl")
+
+        # 世代数保存
+        quicksave.save_metadata(f"{save_name}_meta.json", {
+            "total_generations": st.session_state.total_generations
+        })
+
+        st.success(f"{save_name} に保存しました。")
+
+with col2:
+    if st.button("📤 セル＆構文を読込"):
+        initial_cells = quicksave.load_cells_from_jsonl(f"{save_name}_cells.jsonl")
+        syntax_pool = quicksave.load_syntaxes_from_jsonl(f"{save_name}_syntax.jsonl")
+
+        meta_file = f"{save_path}_meta.json"
+        if os.path.exists(meta_file):
+            meta = quicksave.load_metadata(meta_file)
+            st.session_state.total_generations = meta.get("total_generations", 0)
+            st.success(f"🧮 累計世代数：{st.session_state.total_generations} を復元しました。")
+        else:
+            st.session_state.total_generations = 0
+
+        # セル情報を辞書形式に変換
+        cell_dict = {c.id: c for c in initial_cells}
+
+        st.success(f"{save_name} を読み込みました。")
+

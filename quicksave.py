@@ -19,3 +19,11 @@ def save_syntaxes_to_jsonl(syntaxes, filepath):
 def load_syntaxes_from_jsonl(filepath):
     with open(filepath, 'r', encoding='utf-8') as f:
         return [Syntax(**json.loads(line)) for line in f]
+
+def save_metadata(filepath, meta_dict):
+    with open(filepath, 'w', encoding='utf-8') as f:
+        json.dump(meta_dict, f, ensure_ascii=False)
+
+def load_metadata(filepath):
+    with open(filepath, 'r', encoding='utf-8') as f:
+        return json.load(f)

@@ -21,8 +21,7 @@ def cluster_syntaxes_by_tags(syntaxes: List[Syntax], n_clusters=2) -> Dict[str, 
     vectors = np.array([build_tag_vector(syn, tag_index, dim) for syn in syntaxes])
     
     # クラスタリング（階層型クラスタ）
-    # clustering = AgglomerativeClustering(n_clusters=n_clusters, affinity='cosine', linkage='average') # ❌ 旧形式（古いバージョンではOK）
-    clustering = AgglomerativeClustering(n_clusters=n_clusters, metric='cosine', linkage='average') # ✅ 修正後（新バージョン対応）
+    clustering = AgglomerativeClustering(n_clusters=n_clusters, metric='cosine', linkage='average')
     labels = clustering.fit_predict(vectors)
 
     # SID → クラスタ番号 の辞書

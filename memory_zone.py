@@ -33,3 +33,15 @@ class MemoryZone:
             if all(len(set(s.tags) & set(u.tags)) / max(len(set(s.tags) | set(u.tags)), 1) < threshold for u in unique):
                 unique.append(s)
         self.pool = unique
+
+    def auto_optimize(self, score_thresh=0.3, age_limit=60, similarity_thresh=0.9):
+        before_count = len(self.pool)
+        
+        self.prune_by_score(min_score=score_thresh)
+        self.prune_by_age(age_limit=age_limit)
+        self.prune_by_similarity(threshold=similarity_thresh)
+
+        after_count = len(self.pool)
+        print(f"[記憶圏最適化] 構文数: {before_count} → {after_count}")
+
+

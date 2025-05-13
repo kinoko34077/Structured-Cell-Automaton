@@ -60,3 +60,12 @@ def crossover_tags(s1: Syntax, s2: Syntax, cell_dict: dict) -> Syntax:
         tags=selected_tags,
         parent_sid=f"{s1.sid}&{s2.sid}"
     )
+
+def evolve_generation_with_tags(syntaxes: List[Syntax], cell_dict: dict, top_k: int = 4) -> List[Syntax]:
+    sorted_s = sorted(syntaxes, key=lambda s: -s.score)
+    new_generation = []
+    for i in range(min(top_k - 1, len(sorted_s) - 1)):
+        s1, s2 = sorted_s[i], sorted_s[i+1]
+        child = crossover_tags(s1, s2, cell_dict)
+        new_generation.append(child)
+    return new_generation
