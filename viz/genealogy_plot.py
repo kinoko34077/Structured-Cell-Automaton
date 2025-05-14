@@ -1,4 +1,4 @@
-# ◆genealogy.py
+# ◆genealogy_plot.py（構文系譜）旧genealogy.py
 import networkx as nx
 import matplotlib.pyplot as plt
 

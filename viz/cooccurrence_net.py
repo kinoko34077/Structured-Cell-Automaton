@@ -1,4 +1,4 @@
-# tag_network.py
+# tag_network.py ← 旧tag_network.py（意味タグ共起ネット）
 import matplotlib.pyplot as plt
 import matplotlib.font_manager as fm
 import networkx as nx

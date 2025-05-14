@@ -1,4 +1,4 @@
-# ◆visualizer.py
+# ◆cluster_map.py（構文クラスタ） (旧visualizer.py)
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np

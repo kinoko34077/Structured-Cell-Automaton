@@ -1,3 +1,4 @@
+# ◆score_heatmap.py 旧scoremap.py（スコア出力ヒートマップ）
 import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
