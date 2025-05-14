@@ -17,17 +17,22 @@ def map_sentence_to_tags(sentence: str) -> list:
 
     return list(tags)
 
-def expand_tags(tag_list: List[str]) -> List[str]:
-    tag_synonyms = {
-        "時間": ["朝", "夜", "未来", "昨日"],
-        "空間": ["都市", "海", "森", "部屋"],
-        "感情": ["喜", "怒", "哀", "楽"],
-        "行為": ["見る", "歩く", "考える", "触れる"],
-        "対象": ["人", "動物", "機械", "言葉"]
-    }
+# 意味カテゴリマップ：上位概念 → 下位具体語
+tag_cluster_map = {
+    "時間": ["朝", "夜", "昨日", "未来"],
+    "空間": ["都市", "海", "森", "部屋"],
+    "感情": ["喜", "怒", "哀", "楽"],
+    "行為": ["見る", "歩く", "考える", "触れる"],
+    "対象": ["人", "動物", "言葉", "機械"]
+}
 
-    expanded = set(tag_list)
-    for tag in tag_list:
-        if tag in tag_synonyms:
-            expanded.update(tag_synonyms[tag])
+def expand_tags(tags: list[str]) -> list[str]:
+    """上位タグを与えると、下位タグ群に展開（逆展開も対応可能）"""
+    expanded = set(tags)
+    for tag in tags:
+        if tag in tag_cluster_map:
+            expanded.update(tag_cluster_map[tag])
+        for parent, children in tag_cluster_map.items():
+            if tag in children:
+                expanded.add(parent)
     return list(expanded)

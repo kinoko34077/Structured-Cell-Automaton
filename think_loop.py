@@ -4,22 +4,26 @@ from memory_zone import MemoryZone
 from evolver import evolve_generation, evolve_generation_with_tags
 from scoring import evaluate_syntax
 from output_zone import OutputZone
+from tagging import expand_tags
 
 def simulate_thought_cycle(
     emitted: List[Syntax],
     cell_dict: dict,
     memory_zone: MemoryZone,
     output_zone: OutputZone,
-    iterations: int = 5
+    iterations: int = 5,
+    current_generation=0
 ):
     
     if not memory_zone.pool:
         print("[思考ループ] 記憶圏が空です")
         return []
     
-    # 1. 発話構文のタグからトリガー抽出
+    # 1. 発話構文のタグからトリガー抽出＋クラスタ拡張
     recent_tags = list(set(tag for syn in emitted for tag in syn.tags))
-    reactivated = memory_zone.reactivate_candidates(recent_tags, threshold=0.3)
+    trigger_tags = expand_tags(recent_tags)
+
+    reactivated = memory_zone.reactivate_candidates(trigger_tags, threshold=0.3)
 
     # 2. 初期世代（再活性構文）を設定
     generation = reactivated

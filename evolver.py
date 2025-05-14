@@ -1,3 +1,4 @@
+# ◆evolver.py
 from Syntax import Syntax
 from typing import List
 import uuid
@@ -13,11 +14,18 @@ def crossover(s1: Syntax, s2: Syntax) -> Syntax:
     tags = list(set(s1.tags + s2.tags))
     return Syntax(sid=new_sid, cell_ids=new_cells, parent_sid=f"{s1.sid}&{s2.sid}", tags=tags)
 
-def mutate(syn: Syntax) -> Syntax:
-    # 簡易変異：セル列を逆順
-    new_cell_ids = list(reversed(syn.cell_ids))
+def mutate(syn: Syntax, generation_stamp=None) -> Syntax:
+    from random import shuffle
+    new_cell_ids = syn.cell_ids.copy()
+    shuffle(new_cell_ids)  # 多様性を保つなら逆順よりshuffleの方が好ましい
     new_sid = str(uuid.uuid4())
-    return Syntax(sid=new_sid, cell_ids=new_cell_ids, parent_sid=syn.sid, tags=syn.tags)
+    return Syntax(
+        sid=new_sid,
+        cell_ids=new_cell_ids,
+        parent_sid=syn.sid,
+        tags=syn.tags,
+        generation_stamp=generation_stamp or syn.generation_stamp
+    )
 
 def evolve_generation(syntaxes: List[Syntax], top_k=2, mutation_rate=0.3) -> List[Syntax]:
     # スコア上位から交叉
@@ -61,11 +69,12 @@ def crossover_tags(s1: Syntax, s2: Syntax, cell_dict: dict) -> Syntax:
         parent_sid=f"{s1.sid}&{s2.sid}"
     )
 
-def evolve_generation_with_tags(syntaxes: List[Syntax], cell_dict: dict, top_k: int = 4) -> List[Syntax]:
+def evolve_generation_with_tags(syntaxes: List[Syntax], cell_dict: dict, top_k: int = 4, current_gen: int = 0) -> List[Syntax]:
     sorted_s = sorted(syntaxes, key=lambda s: -s.score)
     new_generation = []
     for i in range(min(top_k - 1, len(sorted_s) - 1)):
         s1, s2 = sorted_s[i], sorted_s[i+1]
         child = crossover_tags(s1, s2, cell_dict)
+        child.generation_stamp = current_gen  # 🔴 ここで世代を記録
         new_generation.append(child)
     return new_generation

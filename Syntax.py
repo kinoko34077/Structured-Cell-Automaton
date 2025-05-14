@@ -1,4 +1,4 @@
-
+# ◆Syntax.py
 from typing import List, Optional
 from dataclasses import dataclass, field
 import time
@@ -14,6 +14,7 @@ class Syntax:
     created_at: float = field(default_factory=time.time)
     parent_sid: Optional[str] = None
     tags: List[str] = field(default_factory=list)
+    generation_stamp: int = 0  # ← 追加
 
     def update_score(self, new_score: float):
         self.score = new_score
