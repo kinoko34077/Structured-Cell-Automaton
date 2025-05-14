@@ -24,6 +24,9 @@ from tag_network import draw_tag_cooccurrence_network
 from scoremap import draw_score_heatmap
 import quicksave
 
+if 'total_generations' not in st.session_state:
+    st.session_state.total_generations = 0
+
 st.set_page_config(page_title="SCA GUI+", layout="wide")
 st.title("🧠 SCA 構文セル・オートマトン GUI+ (本格実験版)")
 
@@ -36,34 +39,52 @@ num_cells = st.sidebar.slider("セル数", 10, 100, 20)
 num_generations = st.sidebar.slider("進化世代数", 1, 50, 5)
 top_k = st.sidebar.slider("交叉対象Top-K", 2, 10, 4)
 
-st.sidebar.subheader("💾 セル・構文の読込／保存")
-save_path = st.sidebar.text_input("保存ファイル名（拡張子不要）", "sca_save")
-load_flag = st.sidebar.checkbox("保存データから読込")
+# 後ほど使う変数を一旦初期化
+initial_cells = generate_balanced_cells(n=num_cells)
+syntax_pool = extract_syntax_from_cells(initial_cells)
+emitted = []
 
 # =========================
-# 💾 状態の初期化／復元
+# 💾 保存・読込：サイドバー統合版
 # =========================
-if 'total_generations' not in st.session_state:
-    st.session_state.total_generations = 0
+st.sidebar.subheader("💾 セル・構文の保存・復元")
 
-if load_flag:
-    cell_file = f"{save_path}_cells.jsonl"
-    syntax_file = f"{save_path}_syntax.jsonl"
-    meta_file = f"{save_path}_meta.json"
-    if os.path.exists(cell_file) and os.path.exists(syntax_file):
-        initial_cells = quicksave.load_cells_from_jsonl(cell_file)
-        syntax_pool = quicksave.load_syntaxes_from_jsonl(syntax_file)
-        if os.path.exists(meta_file):
-            meta = quicksave.load_metadata(meta_file)
-            st.session_state.total_generations = meta.get("total_generations", 0)
-        st.success(f"✅ '{save_path}' を読込完了 / 🧮 累計世代数: {st.session_state.total_generations}")
-    else:
-        st.warning("❌ ファイルが見つかりません。新規生成に切替")
-        initial_cells = generate_balanced_cells(n=num_cells)
-        syntax_pool = extract_syntax_from_cells(initial_cells)
-else:
-    initial_cells = generate_balanced_cells(n=num_cells)
-    syntax_pool = extract_syntax_from_cells(initial_cells)
+save_name = st.sidebar.text_input("保存ファイル名（例：save_001）", value="save_001")
+
+col1, col2 = st.sidebar.columns(2)
+
+with col1:
+    if st.button("📥 保存"):
+        quicksave.save_cells_to_jsonl(initial_cells, f"{save_name}_cells.jsonl")
+        quicksave.save_syntaxes_to_jsonl(syntax_pool + emitted, f"{save_name}_syntax.jsonl")
+        quicksave.save_metadata(f"{save_name}_meta.json", {
+            "total_generations": st.session_state.total_generations
+        })
+        st.sidebar.success(f"{save_name} に保存しました。")
+
+with col2:
+    if st.button("📤 読込"):
+        cell_file = f"{save_name}_cells.jsonl"
+        syntax_file = f"{save_name}_syntax.jsonl"
+        meta_file = f"{save_name}_meta.json"
+
+        if os.path.exists(cell_file) and os.path.exists(syntax_file):
+            initial_cells = quicksave.load_cells_from_jsonl(cell_file)
+            syntax_pool = quicksave.load_syntaxes_from_jsonl(syntax_file)
+
+            if os.path.exists(meta_file):
+                meta = quicksave.load_metadata(meta_file)
+                st.session_state.total_generations = meta.get("total_generations", 0)
+                st.success(f"✅ 読込成功 / 世代: {st.session_state.total_generations}")
+            else:
+                st.session_state.total_generations = 0
+
+            cell_dict = {c.id: c for c in initial_cells}
+            st.sidebar.success(f"{save_name} を読み込みました。")
+            st.sidebar.info(f"🧮 累計進化世代数：{st.session_state.total_generations}")
+        else:
+            st.sidebar.error("❌ 指定ファイルが見つかりません。")
+# =========================
 
 st.markdown(f"🧮 累計進化世代数：**{st.session_state.total_generations}**")
 
@@ -81,7 +102,6 @@ for syn in syntax_pool:
 # 🔁 進化操作＋出力
 # =========================
 ost = OutputZone(capacity=3, activation_threshold=0.5)
-emitted = []
 mz = MemoryZone()
 
 if st.button("▶ 構文進化→評価→発話"):
@@ -162,44 +182,4 @@ if st.button("自動最適化（複合条件）"):
     mz.auto_optimize(score_thresh=0.3, age_limit=60, similarity_thresh=0.9)
     st.success("記憶圏の自動最適化を実行しました。")
 
-
-# =========================
-# 💾 保存処理
-# =========================
-import quicksave
-
-st.subheader("構文状態の保存・復元")
-
-save_name = st.text_input("保存ファイル名（例：save_001）", value="save_001")
-
-col1, col2 = st.columns(2)
-with col1:
-    if st.button("📥 セル＆構文を保存"):
-        quicksave.save_cells_to_jsonl(initial_cells, f"{save_name}_cells.jsonl")
-        quicksave.save_syntaxes_to_jsonl(syntax_pool + emitted, f"{save_name}_syntax.jsonl")
-
-        # 世代数保存
-        quicksave.save_metadata(f"{save_name}_meta.json", {
-            "total_generations": st.session_state.total_generations
-        })
-
-        st.success(f"{save_name} に保存しました。")
-
-with col2:
-    if st.button("📤 セル＆構文を読込"):
-        initial_cells = quicksave.load_cells_from_jsonl(f"{save_name}_cells.jsonl")
-        syntax_pool = quicksave.load_syntaxes_from_jsonl(f"{save_name}_syntax.jsonl")
-
-        meta_file = f"{save_path}_meta.json"
-        if os.path.exists(meta_file):
-            meta = quicksave.load_metadata(meta_file)
-            st.session_state.total_generations = meta.get("total_generations", 0)
-            st.success(f"🧮 累計世代数：{st.session_state.total_generations} を復元しました。")
-        else:
-            st.session_state.total_generations = 0
-
-        # セル情報を辞書形式に変換
-        cell_dict = {c.id: c for c in initial_cells}
-
-        st.success(f"{save_name} を読み込みました。")
-
+#SCA GUI+ v0.3.1 by KiNoTch
