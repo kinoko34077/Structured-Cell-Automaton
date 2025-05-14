@@ -9,7 +9,7 @@ from output_zone import OutputZone
 from linearizer import linearize_syntax
 from memory_zone import MemoryZone
 from clustering import cluster_syntaxes_by_tags
-from visualizer import visualize_syntax_clusters
+from viz.cluster_map import visualize_syntax_clusters
 
 from think_loop import simulate_thought_cycle
 
@@ -180,20 +180,20 @@ if st.button("意味タグに変換"):
 # -----
 
 # SID構文ツリー可視化（networkx + matplotlib）
-from genealogy import draw_syntax_genealogy
+from viz.genealogy_plot import draw_syntax_genealogy
 
 st.subheader("構文進化系譜")
 draw_syntax_genealogy(syntax_pool + emitted, use_streamlit=True)
 
 # 共起ネットワーク描画モジュール
-from tag_network import draw_tag_cooccurrence_network
+from viz.cooccurrence_net import draw_tag_cooccurrence_network
 
 st.subheader("意味タグ共起ネットワーク")
 draw_tag_cooccurrence_network(syntax_pool + emitted, use_streamlit=True)
 
 
 # 出力スコアヒートマップ
-from scoremap import draw_score_heatmap
+from viz.score_heatmap import draw_score_heatmap
 
 if emitted:
     st.subheader("スコア出力ヒートマップ")

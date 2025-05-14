@@ -130,7 +130,7 @@ for syn in reactivated:
 # 意味マップ描画
 # -------------------------------
 
-from visualizer import visualize_syntax_clusters
+from viz.cluster_map import visualize_syntax_clusters
 
 # 使用された構文すべてからタグインデックス生成
 all_tags = sorted(set(tag for syn in syntax_pool for tag in syn.tags))

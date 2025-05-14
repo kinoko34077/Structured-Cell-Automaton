@@ -11,13 +11,13 @@ from output_zone import OutputZone
 from linearizer import linearize_syntax
 from memory_zone import MemoryZone
 from clustering import cluster_syntaxes_by_tags
-from visualizer import visualize_syntax_clusters
+from viz.cluster_map import visualize_syntax_clusters
 from think_loop import simulate_thought_cycle
 from sca_data import generate_balanced_cells
 from tagging import map_sentence_to_tags, expand_tags
-from genealogy import draw_syntax_genealogy
-from tag_network import draw_tag_cooccurrence_network
-from scoremap import draw_score_heatmap
+from viz.genealogy_plot import draw_syntax_genealogy
+from viz.cooccurrence_net import draw_tag_cooccurrence_network
+from viz.score_heatmap import draw_score_heatmap
 import quicksave
 
 if 'total_generations' not in st.session_state:
