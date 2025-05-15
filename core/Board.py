@@ -1,6 +1,6 @@
 # ◆Board.py
 from typing import Dict, Tuple
-from Cell import Cell
+from core import Cell
 
 class Board:
     def __init__(self, width: int, height: int):

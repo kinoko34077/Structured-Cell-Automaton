@@ -18,7 +18,7 @@ def set_japanese_font():
     print("⚠ 日本語フォントが見つかりません。")
     return None
 
-def draw_tag_cooccurrence_network(syntaxes, use_streamlit=False):
+def draw_tag_cooccurrence_network(syntaxes, use_streamlit=False, figsize=(6, 4)):
     # ⬛ フォントを明示的に取得
     font_path = set_japanese_font()
     font_prop = fm.FontProperties(fname=font_path) if font_path else None
@@ -37,7 +37,7 @@ def draw_tag_cooccurrence_network(syntaxes, use_streamlit=False):
     pos = nx.spring_layout(G, seed=42)
     edge_widths = [G[u][v]['weight'] for u, v in G.edges()]
 
-    fig = plt.figure(figsize=(6, 5))
+    fig = plt.figure(figsize=figsize)
     nx.draw(
         G, pos,
         with_labels=True,

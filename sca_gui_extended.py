@@ -16,12 +16,7 @@ from engine import (
 from tagging import map_sentence_to_tags, expand_tags
 from save import quicksave
 
-from viz import (
-    visualize_syntax_clusters,
-    draw_syntax_genealogy,
-    draw_score_heatmap,
-    draw_tag_cooccurrence_network
-)
+from viz import cluster_map, genealogy_plot, cooccurrence_net, score_heatmap
 
 if 'total_generations' not in st.session_state:
     st.session_state.total_generations = 0
@@ -84,18 +79,26 @@ with col2:
         else:
             st.sidebar.error("❌ 指定ファイルが見つかりません。")
 # =========================
+# 📊 状態情報表示エリア
+# =========================
 
-st.markdown(f"🧮 累計進化世代数：**{st.session_state.total_generations}**")
-
-# セル情報表示
+# 🎯 cell_dict をこのタイミングで定義しておく（evaluate_syntaxで使用）
 cell_dict = {c.id: c for c in initial_cells}
-st.subheader("🧬 セル情報")
-for c in initial_cells:
-    st.write(c)
 
-# スコア評価
+# 🎲 構文スコア評価（初期）
 for syn in syntax_pool:
     evaluate_syntax(syn, cell_dict, memory_pool=syntax_pool)
+
+# 🧬 セル情報表示（トグル+表形式）
+with st.expander("🧬 セル情報（クリックで展開）", expanded=False):
+    import pandas as pd
+    df = pd.DataFrame([{
+        "Cell ID": c.id,
+        "位置": str(c.position),
+        "活性度": round(c.activation, 3),
+        "意味タグ": ", ".join(c.meaning_tags)
+    } for c in initial_cells])
+    st.dataframe(df, use_container_width=True)
 
 # =========================
 # 🔁 進化操作＋出力
@@ -123,7 +126,7 @@ if st.button("▶ 構文進化→評価→発話"):
 
 
 # 出力表示
-st.markdown(f"🧮 累計進化世代数：**{st.session_state.total_generations}**")
+st.markdown(f"🧮 累計進化世代数：**{st.session_state.total_generations}**") # 📈 世代数表示
 if emitted:
     st.subheader("🗣️ 発話構文")
     for syn in emitted:
@@ -148,16 +151,44 @@ if st.button("🔄 内的思考ループ"):
 # =========================
 # 📊 各種可視化
 # =========================
-st.subheader("📍 Semantic Cluster Map")
-all_tags = sorted(set(tag for syn in syntax_pool + emitted for tag in syn.tags))
-tag_index = {tag: i for i, tag in enumerate(all_tags)}
-visualize_syntax_clusters(syntax_pool, tag_index, use_streamlit=True)
 
-draw_syntax_genealogy(syntax_pool + emitted, use_streamlit=True)
-draw_tag_cooccurrence_network(syntax_pool + emitted, use_streamlit=True)
-if emitted:
-    all_tags = sorted(set(tag for syn in syntax_pool + emitted for tag in syn.tags))  # ← 修正
-    draw_score_heatmap(emitted, all_tags, use_streamlit=True)
+# 🎯 可視化のための全タグ一覧（syntax_pool + emitted 両方）
+all_tags = sorted(set(
+    tag for syn in (syntax_pool + emitted) for tag in syn.tags
+))
+
+# =========================
+# 📊 各種可視化（2×2表示）
+# =========================
+
+st.subheader("📊 可視化ビュー（構文クラスタ・系譜・共起・スコア）")
+fig_size=(8, 3)
+
+col1, col2 = st.columns(2)
+with col1:
+    #st.markdown(f"🧭 Semantic Cluster Map")
+    from viz.cluster_map import visualize_syntax_clusters
+    tag_index = {tag: i for i, tag in enumerate(sorted({tag for syn in syntax_pool for tag in syn.tags}))}
+    visualize_syntax_clusters(syntax_pool, tag_index, use_streamlit=True, figsize=fig_size)
+
+with col2:
+    #st.markdown(f"🌱 構文進化系譜")
+    from viz.genealogy_plot import draw_syntax_genealogy
+    draw_syntax_genealogy(syntax_pool + emitted, use_streamlit=True, figsize=fig_size)
+
+col3, col4 = st.columns(2)
+
+with col3:
+    #st.markdown(f"🕸️ 意味タグ共起ネットワーク")
+    from viz.cooccurrence_net import draw_tag_cooccurrence_network
+    draw_tag_cooccurrence_network(syntax_pool + emitted, use_streamlit=True, figsize=fig_size)
+
+with col4:
+    #st.markdown(f"📶 スコア出力ヒートマップ")
+    from viz.score_heatmap import draw_score_heatmap
+    all_tags = sorted(set(tag for syn in syntax_pool + emitted for tag in syn.tags))
+    draw_score_heatmap(emitted, all_tags, use_streamlit=True, figsize=fig_size)
+
 
 # ----------------------------------------
 # 🔻構文淘汰セクション

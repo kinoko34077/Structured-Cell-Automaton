@@ -3,7 +3,11 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False):
+def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False, figsize=(6, 4)):
+    if not emitted_syntaxes or not all_tags:
+        #print("[スコアヒートマップ] 入力が空のため描画スキップ")
+        return
+    
     # タグ順で行を定義
     tag_list = sorted(all_tags)
     num_steps = len(emitted_syntaxes)
@@ -17,7 +21,8 @@ def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False):
                 y = tag_list.index(tag)
                 heatmap_data[y, x] = syn.score
 
-    fig, ax = plt.subplots(figsize=(num_steps, len(tag_list) * 0.5 + 1))
+     # サイズ制御：タグ数が多いと縦だけ大きくし、横は固定
+    fig, ax = plt.subplots(figsize=figsize)
     sns.heatmap(heatmap_data, cmap='YlGnBu', xticklabels=True, yticklabels=tag_list, ax=ax)
 
     ax.set_title("構文スコア出力ヒートマップ")

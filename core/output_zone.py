@@ -1,5 +1,5 @@
 from typing import List
-from Syntax import Syntax
+from core import Syntax
 
 class OutputZone:
     def __init__(self, capacity=5, activation_threshold=0.6):

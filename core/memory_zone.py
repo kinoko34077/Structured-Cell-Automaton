@@ -1,7 +1,7 @@
 # ◆memory_zone.py
 import time
 from typing import List, Optional
-from Syntax import Syntax
+from core import Syntax
 
 class MemoryZone:
     def __init__(self):

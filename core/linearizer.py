@@ -1,6 +1,5 @@
 from typing import List
-from Syntax import Syntax
-from Cell import Cell
+from core import Syntax,Cell
 
 def linearize_syntax(syntax: Syntax, cell_dict: dict) -> str:
     cells = [cell_dict.get(cid) for cid in syntax.cell_ids if cid in cell_dict]
