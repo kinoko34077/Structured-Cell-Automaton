@@ -1,7 +1,6 @@
 import math
 from typing import List
-from Cell import Cell
-from Syntax import Syntax
+from core import Cell, Syntax
 
 def evaluate_syntax(syntax: Syntax, cell_dict: dict, memory_pool: List[Syntax] = []) -> float:
     cells = [cell_dict[cid] for cid in syntax.cell_ids if cid in cell_dict]

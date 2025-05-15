@@ -1,9 +1,7 @@
 from typing import List
-from Syntax import Syntax
-from memory_zone import MemoryZone
+from core import Syntax, MemoryZone, OutputZone
 from evolver import evolve_generation, evolve_generation_with_tags
 from scoring import evaluate_syntax
-from output_zone import OutputZone
 from tagging import expand_tags
 
 def simulate_thought_cycle(

@@ -1,5 +1,5 @@
 import random
-from Cell import Cell
+from core import Cell
 
 def generate_diverse_cells(n=20):
     tag_pool = {

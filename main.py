@@ -1,14 +1,14 @@
 # 統合済み main.py：SCAプロトタイプ進化→発話→整形処理付き
 
-from Cell import Cell
-from Syntax import Syntax
-from Board import Board
-from syntax_extractor import extract_syntax_from_cells
-from scoring import evaluate_syntax
-from evolver import evolve_generation
-from clustering import cluster_syntaxes_by_tags
-from output_zone import OutputZone
-from linearizer import linearize_syntax
+from core import Board, Cell, Syntax, OutputZone, MemoryZone, linearize_syntax
+from engine import (
+    extract_syntax_from_cells,
+    evaluate_syntax,
+    evolve_generation,
+    cluster_syntaxes_by_tags,
+    )
+
+from viz.cluster_map import visualize_syntax_clusters
 
 # -------------------------------
 # 初期セルと構文の定義
@@ -109,8 +109,6 @@ else:
 # 再活性導入（発話後に再評価候補を追加）
 # -------------------------------
 
-from memory_zone import MemoryZone
-
 # 発話構文を記憶に保存
 mz = MemoryZone()
 
@@ -130,7 +128,6 @@ for syn in reactivated:
 # 意味マップ描画
 # -------------------------------
 
-from viz.cluster_map import visualize_syntax_clusters
 
 # 使用された構文すべてからタグインデックス生成
 all_tags = sorted(set(tag for syn in syntax_pool for tag in syn.tags))

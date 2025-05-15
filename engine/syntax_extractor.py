@@ -1,6 +1,5 @@
 from typing import List
-from Cell import Cell
-from Syntax import Syntax
+from core import Cell, Syntax
 import uuid
 import time
 

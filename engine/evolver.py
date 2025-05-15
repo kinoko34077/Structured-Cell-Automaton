@@ -1,5 +1,5 @@
 # ◆evolver.py
-from Syntax import Syntax
+from core import Syntax
 from typing import List
 import uuid
 import random

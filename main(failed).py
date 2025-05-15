@@ -1,23 +1,8 @@
 # main.py
 
-from Cell import Cell
-from Syntax import Syntax
-
-from Board import Board
-from syntax_extractor import extract_syntax_from_cells
-
-from quicksave import save_cells_to_jsonl, load_cells_from_jsonl
-from quicksave import save_syntaxes_to_jsonl, load_syntaxes_from_jsonl
-
-from scoring import evaluate_syntax
-from clustering import cluster_syntaxes_by_tags
-
-from output_zone import OutputZone
-
-from evolver import evolve_generation
-from scoring import evaluate_syntax
-
-from linearizer import linearize_syntax
+from core import Board, OutputZone, linearize_syntax
+from engine import *
+from save.quicksave import *
 
 # セルの作成（意味タグ付き）
 cell1 = Cell(id="c1", position=(0, 0), activation=0.7, meaning_tags=["名詞", "動物"])

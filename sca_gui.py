@@ -1,20 +1,17 @@
 # sca_gui.py
 import streamlit as st
-from Cell import Cell
-from Syntax import Syntax
-from syntax_extractor import extract_syntax_from_cells
-from scoring import evaluate_syntax
-from evolver import evolve_generation, crossover_tags
-from output_zone import OutputZone
-from linearizer import linearize_syntax
-from memory_zone import MemoryZone
-from clustering import cluster_syntaxes_by_tags
+from core import Cell, Syntax, MemoryZone, OutputZone
+from engine.syntax_extractor import extract_syntax_from_cells
+
+from engine.scoring import evaluate_syntax
+from engine.evolver import evolve_generation, crossover_tags
+from core.linearizer import linearize_syntax
+from engine.clustering import cluster_syntaxes_by_tags
 from viz.cluster_map import visualize_syntax_clusters
 
-from think_loop import simulate_thought_cycle
+from engine.think_loop import simulate_thought_cycle
 
-from sca_data import generate_diverse_cells, generate_balanced_cells
-from syntax_extractor import extract_syntax_from_cells
+from engine.sca_data import generate_diverse_cells, generate_balanced_cells
 
 from tagging import map_sentence_to_tags, expand_tags
 

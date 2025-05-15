@@ -2,8 +2,8 @@
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from Syntax import Syntax
-from clustering import build_tag_vector
+from core import Syntax
+from engine.clustering import build_tag_vector
 from sklearn.metrics.pairwise import cosine_similarity  # 🔧 追加
 
 import matplotlib

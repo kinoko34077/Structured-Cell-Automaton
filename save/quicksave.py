@@ -1,6 +1,5 @@
 import json
-from Cell import Cell
-from Syntax import Syntax
+from core import Cell, Syntax
 
 def save_cells_to_jsonl(cells, filepath):
     with open(filepath, 'w', encoding='utf-8') as f:

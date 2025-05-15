@@ -1,5 +1,5 @@
 from typing import List, Dict
-from Syntax import Syntax
+from core import Syntax
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.cluster import AgglomerativeClustering

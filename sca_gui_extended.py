@@ -2,23 +2,26 @@
 
 import streamlit as st
 import os
-from Cell import Cell
-from Syntax import Syntax
-from syntax_extractor import extract_syntax_from_cells
-from scoring import evaluate_syntax
-from evolver import evolve_generation_with_tags
-from output_zone import OutputZone
-from linearizer import linearize_syntax
-from memory_zone import MemoryZone
-from clustering import cluster_syntaxes_by_tags
-from viz.cluster_map import visualize_syntax_clusters
-from think_loop import simulate_thought_cycle
-from sca_data import generate_balanced_cells
+
+from core import Cell, Syntax, OutputZone, linearize_syntax, MemoryZone
+from engine import (
+    extract_syntax_from_cells,
+    evaluate_syntax,
+    evolve_generation_with_tags,
+    cluster_syntaxes_by_tags,
+    simulate_thought_cycle,
+    generate_balanced_cells
+    )
+
 from tagging import map_sentence_to_tags, expand_tags
-from viz.genealogy_plot import draw_syntax_genealogy
-from viz.cooccurrence_net import draw_tag_cooccurrence_network
-from viz.score_heatmap import draw_score_heatmap
-import quicksave
+from save import quicksave
+
+from viz import (
+    visualize_syntax_clusters,
+    draw_syntax_genealogy,
+    draw_score_heatmap,
+    draw_tag_cooccurrence_network
+)
 
 if 'total_generations' not in st.session_state:
     st.session_state.total_generations = 0
@@ -51,18 +54,18 @@ col1, col2 = st.sidebar.columns(2)
 
 with col1:
     if st.button("📥 保存"):
-        quicksave.save_cells_to_jsonl(initial_cells, f"{save_name}_cells.jsonl")
-        quicksave.save_syntaxes_to_jsonl(syntax_pool + emitted, f"{save_name}_syntax.jsonl")
-        quicksave.save_metadata(f"{save_name}_meta.json", {
+        quicksave.save_cells_to_jsonl(initial_cells, f"save/{save_name}_cells.jsonl")
+        quicksave.save_syntaxes_to_jsonl(syntax_pool + emitted, f"save/{save_name}_syntax.jsonl")
+        quicksave.save_metadata(f"save/{save_name}_meta.json", {
             "total_generations": st.session_state.total_generations
         })
-        st.sidebar.success(f"{save_name} に保存しました。")
+        st.sidebar.success(f"save/{save_name} に保存しました。")
 
 with col2:
     if st.button("📤 読込"):
-        cell_file = f"{save_name}_cells.jsonl"
-        syntax_file = f"{save_name}_syntax.jsonl"
-        meta_file = f"{save_name}_meta.json"
+        cell_file = f"save/{save_name}_cells.jsonl"
+        syntax_file = f"save/{save_name}_syntax.jsonl"
+        meta_file = f"save/{save_name}_meta.json"
 
         if os.path.exists(cell_file) and os.path.exists(syntax_file):
             initial_cells = quicksave.load_cells_from_jsonl(cell_file)
@@ -76,7 +79,7 @@ with col2:
                 st.session_state.total_generations = 0
 
             cell_dict = {c.id: c for c in initial_cells}
-            st.sidebar.success(f"{save_name} を読み込みました。")
+            st.sidebar.success(f"save/{save_name} を読み込みました。")
             st.sidebar.info(f"🧮 累計進化世代数：{st.session_state.total_generations}")
         else:
             st.sidebar.error("❌ 指定ファイルが見つかりません。")
