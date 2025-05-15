@@ -1,27 +1,25 @@
 from typing import List
-from core import Syntax,Cell
+from core import Syntax
 
-def linearize_syntax(syntax: Syntax, cell_dict: dict) -> str:
-    cells = [cell_dict.get(cid) for cid in syntax.cell_ids if cid in cell_dict]
-    if not cells:
-        return "(構文情報なし)"
+class OutputZone:
+    def __init__(self, capacity=5, activation_threshold=0.6):
+        self.buffer: List[Syntax] = []
+        self.capacity = capacity
+        self.activation_threshold = activation_threshold
 
-    # 意味タグの優先順（名詞→動詞→助詞）
-    tag_order = ["名詞", "動物", "動詞", "移動", "助詞"]
+    def add_syntax(self, syntax: Syntax):
+        """スコアが高ければ追加（優先挿入）"""
+        if syntax.score >= self.activation_threshold:
+            self.buffer.append(syntax)
+            self.buffer = sorted(self.buffer, key=lambda s: -s.score)
+            self.buffer = self.buffer[:self.capacity]
 
-    # タグの重み付けによる並び順決定
-    def tag_priority(cell: Cell):
-        for i, tag in enumerate(tag_order):
-            if tag in cell.meaning_tags:
-                return i
-        return len(tag_order)
+    def should_emit(self) -> bool:
+        """意味タグ密度や平均スコアで発話タイミング判断（仮に容量到達で）"""
+        return len(self.buffer) >= self.capacity
 
-    sorted_cells = sorted(cells, key=tag_priority)
-
-    # 出力フォーマット例：「動物が 移動する」
-    elements = []
-    for c in sorted_cells:
-        tags = "・".join(c.meaning_tags)
-        elements.append(f"[{c.id}:{tags}]")
-
-    return "→ " + " ".join(elements)
+    def emit(self) -> List[Syntax]:
+        """現在のバッファを発話出力"""
+        output = self.buffer.copy()
+        self.buffer.clear()
+        return output
