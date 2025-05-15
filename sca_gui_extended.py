@@ -84,82 +84,111 @@ with col2:
 
 # 🎯 cell_dict をこのタイミングで定義しておく（evaluate_syntaxで使用）
 cell_dict = {c.id: c for c in initial_cells}
+mz = MemoryZone()
 
 # 🎲 構文スコア評価（初期）
 for syn in syntax_pool:
     evaluate_syntax(syn, cell_dict, memory_pool=syntax_pool)
 
-# 🧬 セル情報表示（トグル+表形式）
-with st.expander("🧬 セル情報（クリックで展開）", expanded=False):
-    import pandas as pd
-    df = pd.DataFrame([{
-        "Cell ID": c.id,
-        "位置": str(c.position),
-        "活性度": round(c.activation, 3),
-        "意味タグ": ", ".join(c.meaning_tags)
-    } for c in initial_cells])
-    st.dataframe(df, use_container_width=True)
+col_left, col_right = st.columns(2)
+
+
+# 出力表示
+with col_left:
+    with st.expander("🧬 セル情報（クリックで展開）", expanded=False):
+        import pandas as pd
+        df = pd.DataFrame([{
+            "Cell ID": c.id,
+            "位置": str(c.position),
+            "活性度": round(c.activation, 3),
+            "意味タグ": ", ".join(c.meaning_tags)
+        } for c in initial_cells])
+        st.dataframe(df, use_container_width=True)
+
+if 'emitted' not in st.session_state:
+    st.session_state.emitted = []
+
+# 発話構文の保存先を更新
+emitted = st.session_state.emitted
+
+with col_right:
+    with st.expander("🗣️ 発話構文", expanded=True):
+        if emitted:
+            seen = set()
+            for syn in emitted:
+                if syn.sid not in seen:
+                    seen.add(syn.sid)
+                    st.markdown(f"**{syn.sid[:8]}** → {linearize_syntax(syn, cell_dict)}")
+
+st.markdown(f"🧮 累計進化世代数：**{st.session_state.total_generations}**") # 📈 世代数表示
 
 # =========================
 # 🔁 進化操作＋出力
 # =========================
 ost = OutputZone(capacity=3, activation_threshold=0.5)
-mz = MemoryZone()
 
-if st.button("▶ 構文進化→評価→発話"):
-    generation = syntax_pool.copy()
-    for _ in range(num_generations):
-        for syn in generation:
-            evaluate_syntax(syn, cell_dict)
-            ost.add_syntax(syn)
-            mz.store(syn, current_gen=st.session_state.total_generations)  # ← generation_stampを渡す
-        if st.session_state.total_generations > 1 and ost.should_emit(): # 発話ゾーンで出力が出たら即座に出力
-            emitted += ost.emit()
-            break
-
-        generation = evolve_generation_with_tags(generation, cell_dict, top_k=top_k, current_gen=st.session_state.total_generations)    # 次世代進化
-        st.session_state.total_generations += 1     # 累計世代を加算（ここが基準）
-
-        # 🔻 🔥 最適化フェーズ：世代ベースで記憶圏を圧縮
-        mz.prune_by_generation(current_gen=st.session_state.total_generations, max_age=60)
-        mz.auto_optimize(score_thresh=0.3, age_limit=60, similarity_thresh=0.9)
-
-
-# 出力表示
-st.markdown(f"🧮 累計進化世代数：**{st.session_state.total_generations}**") # 📈 世代数表示
-if emitted:
-    st.subheader("🗣️ 発話構文")
-    for syn in emitted:
-        mz.store(syn)
-        st.markdown(f"**{syn.sid[:8]}** → {linearize_syntax(syn, cell_dict)}")
-
-# =========================
-# 🧠 思考ループ実行
-# =========================
-if st.button("🔄 内的思考ループ"):
-    trigger_tags = expand_tags([t for syn in emitted for t in syn.tags])
-    st.markdown(f"🔍 **トリガータグ（展開後）**: {trigger_tags}")
+with st.expander("⚙️ 操作パネル（進化・思考・淘汰）", expanded=True):
+    col1, col2 = st.columns(2)
     
-    emitted = simulate_thought_cycle(emitted, cell_dict, mz, ost)
-    if emitted:
-        st.subheader("🧠 発話構文（思考ループ）")
-        for syn in emitted:
-            st.markdown(f"→ {linearize_syntax(syn, cell_dict)}")
-    else:
-        st.warning("思考ループからの発話はありませんでした。")
+    with col1:
+        if st.button("▶ 構文進化→評価→発話"):
+            generation = syntax_pool.copy()
+            for _ in range(num_generations):
+                for syn in generation:
+                    evaluate_syntax(syn, cell_dict)
+                    ost.add_syntax(syn)
+                    mz.store(syn, current_gen=st.session_state.total_generations)
+                if st.session_state.total_generations > 1 and ost.should_emit():
+                    new_output = ost.emit()
+                    for syn in new_output:
+                        mz.store(syn, current_gen=st.session_state.total_generations)
+                    emitted += new_output
+                    st.session_state.emitted += new_output  # セッションに記録
+                    break
+                generation = evolve_generation_with_tags(generation, cell_dict, top_k=top_k, current_gen=st.session_state.total_generations)
+                st.session_state.total_generations += 1
+                mz.auto_optimize(score_thresh=0.3, age_limit=60, similarity_thresh=0.9, current_gen=st.session_state.total_generations)
+
+        if st.button("🔄 内的思考ループ"):
+            trigger_tags = expand_tags([t for syn in emitted for t in syn.tags])
+            st.markdown(f"🔍 **トリガータグ（展開後）**: {trigger_tags}")
+            emitted = simulate_thought_cycle(emitted, cell_dict, mz, ost)
+            if emitted:
+                st.subheader("🧠 発話構文（思考ループ）")
+                for syn in emitted:
+                    st.markdown(f"→ {linearize_syntax(syn, cell_dict)}")
+            else:
+                st.warning("思考ループからの発話はありませんでした。")
+
+    with col2:
+        st.markdown("🧹 **構文淘汰ツール**")
+        if st.button("スコア淘汰（<0.3）"):
+            mz.prune_by_score(min_score=0.3)
+            st.success("スコアによる構文淘汰を実行しました。")
+        if st.button("世代淘汰（60世代前まで）"):
+            mz.prune_by_generation(current_gen=st.session_state.total_generations, max_age=60)
+            st.success("世代ベースで古い構文を淘汰しました。")
+        if st.button("類似構文淘汰（閾値=0.9）"):
+            mz.prune_by_similarity(threshold=0.9)
+            st.success("類似タグを持つ冗長構文を圧縮しました。")
+        if st.button("自動最適化（複合条件）"):
+            mz.auto_optimize(
+                score_thresh=0.3,
+                age_limit=60,
+                similarity_thresh=0.9,
+                current_gen=st.session_state.total_generations
+            )
+            st.success("記憶圏の自動最適化を実行しました。")
+
 
 # =========================
-# 📊 各種可視化
+# 📊 各種可視化（2×2表示）
 # =========================
 
 # 🎯 可視化のための全タグ一覧（syntax_pool + emitted 両方）
 all_tags = sorted(set(
     tag for syn in (syntax_pool + emitted) for tag in syn.tags
 ))
-
-# =========================
-# 📊 各種可視化（2×2表示）
-# =========================
 
 st.subheader("📊 可視化ビュー（構文クラスタ・系譜・共起・スコア）")
 fig_size=(8, 3)
@@ -186,42 +215,6 @@ with col3:
 with col4:
     #st.markdown(f"📶 スコア出力ヒートマップ")
     from viz.score_heatmap import draw_score_heatmap
-    all_tags = sorted(set(tag for syn in syntax_pool + emitted for tag in syn.tags))
     draw_score_heatmap(emitted, all_tags, use_streamlit=True, figsize=fig_size)
-
-
-# ----------------------------------------
-# 🔻構文淘汰セクション
-# ----------------------------------------
-
-st.subheader("🧹 構文淘汰ツール")
-
-# 個別淘汰
-col1, col2, col3 = st.columns(3)
-
-with col1:
-    if st.button("スコア淘汰（<0.3）"):
-        mz.prune_by_score(min_score=0.3)
-        st.success("スコアによる構文淘汰を実行しました。")
-
-with col2:
-    if st.button("世代淘汰（60世代前まで）"):
-        mz.prune_by_generation(current_gen=st.session_state.total_generations, max_age=60)
-        st.success("世代ベースで古い構文を淘汰しました。")
-
-with col3:
-    if st.button("類似構文淘汰（閾値=0.9）"):
-        mz.prune_by_similarity(threshold=0.9)
-        st.success("類似タグを持つ冗長構文を圧縮しました。")
-
-# 自動最適化（複合条件）
-if st.button("自動最適化（複合条件）"):
-    mz.auto_optimize(
-        score_thresh=0.3,
-        age_limit=60,
-        similarity_thresh=0.9,
-        current_gen=st.session_state.total_generations  # 👈 渡す
-    )
-    st.success("記憶圏の自動最適化を実行しました。")
 
 #SCA GUI+ v0.3.1 by KiNoTch
