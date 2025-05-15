@@ -1,4 +1,11 @@
 .venv/
 venv/
+
+# Pythonキャッシュフォルダ全般
 __pycache__/
+**/__pycache__/
+
+# Pythonバイトコード
 *.pyc
+*.pyo
+*.pyd
