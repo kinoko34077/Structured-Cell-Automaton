@@ -1,25 +1,41 @@
+"""
+linearizer.py
+
+構文（Syntax）を自然言語風の整形文字列に変換するモジュール。
+主にGUIでの発話表示や、ログ出力に用いられる。
+"""
+
 from typing import List
-from core import Syntax
+from core import Syntax, Cell
 
-class OutputZone:
-    def __init__(self, capacity=5, activation_threshold=0.6):
-        self.buffer: List[Syntax] = []
-        self.capacity = capacity
-        self.activation_threshold = activation_threshold
+def linearize_syntax(syntax: Syntax, cell_dict: dict[str, Cell]) -> str:
+    """
+    構文オブジェクトを人間可読なフォーマットに変換する。
 
-    def add_syntax(self, syntax: Syntax):
-        """スコアが高ければ追加（優先挿入）"""
-        if syntax.score >= self.activation_threshold:
-            self.buffer.append(syntax)
-            self.buffer = sorted(self.buffer, key=lambda s: -s.score)
-            self.buffer = self.buffer[:self.capacity]
+    Args:
+        syntax (Syntax): 構文オブジェクト（SID・タグ列等含む）
+        cell_dict (dict[str, Cell]): 全セル辞書（ID → Cell）
 
-    def should_emit(self) -> bool:
-        """意味タグ密度や平均スコアで発話タイミング判断（仮に容量到達で）"""
-        return len(self.buffer) >= self.capacity
+    Returns:
+        str: 整形された構文表示文字列（例：[c01:名詞] [c02:動詞] ...）
+    """
+    cells = [cell_dict.get(cid) for cid in syntax.cell_ids if cid in cell_dict]
+    if not cells:
+        return "(構文情報なし)"
 
-    def emit(self) -> List[Syntax]:
-        """現在のバッファを発話出力"""
-        output = self.buffer.copy()
-        self.buffer.clear()
-        return output
+    # タグの出現優先順位（先頭に並ぶほど左側に寄せる）
+    tag_order = ["名詞", "動物", "動詞", "移動", "助詞"]
+
+    def tag_priority(cell: Cell) -> int:
+        for i, tag in enumerate(tag_order):
+            if tag in cell.meaning_tags:
+                return i
+        return len(tag_order)
+
+    sorted_cells = sorted(cells, key=tag_priority)
+
+    elements = [
+        f"[{c.id}:{'・'.join(c.meaning_tags)}]"
+        for c in sorted_cells
+    ]
+    return "→ " + " ".join(elements)

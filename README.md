@@ -55,7 +55,9 @@ pip install -r requirements.txt
 ```bash
 streamlit run sca_gui.py
 ```
-
+```bash
+streamlit run sca_gui_extended.py
+```
 ---
 
 ## ✅ 必須パッケージ（requirements.txt）
