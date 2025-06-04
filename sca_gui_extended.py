@@ -17,6 +17,7 @@ from tagging import map_sentence_to_tags, expand_tags
 from save import quicksave
 
 from viz import cluster_map, genealogy_plot, cooccurrence_net, score_heatmap
+import pandas as pd
 
 if 'total_generations' not in st.session_state:
     st.session_state.total_generations = 0
@@ -96,7 +97,6 @@ col_left, col_right = st.columns(2)
 # 出力表示
 with col_left:
     with st.expander("🧬 セル情報（クリックで展開）", expanded=False):
-        import pandas as pd
         df = pd.DataFrame([{
             "Cell ID": c.id,
             "位置": str(c.position),
@@ -114,11 +114,27 @@ emitted = st.session_state.emitted
 with col_right:
     with st.expander("🗣️ 発話構文", expanded=True):
         if emitted:
+            # 表形式に整形
+            data = []
             seen = set()
             for syn in emitted:
-                if syn.sid not in seen:
-                    seen.add(syn.sid)
-                    st.markdown(f"**{syn.sid[:8]}** → {linearize_syntax(syn, cell_dict)}")
+                if syn.sid in seen:
+                    continue
+                seen.add(syn.sid)
+                data.append({
+                    "SID": syn.sid[:8],
+                    "スコア": round(syn.score, 3),
+                    "構成": linearize_syntax(syn, cell_dict),
+                    "タグ": ", ".join(syn.tags),
+                })
+
+            df = pd.DataFrame(data)
+            st.dataframe(df, use_container_width=True)
+
+        else:
+            st.info("（まだ発話構文はありません）")
+
+
 
 st.markdown(f"🧮 累計進化世代数：**{st.session_state.total_generations}**") # 📈 世代数表示
 
