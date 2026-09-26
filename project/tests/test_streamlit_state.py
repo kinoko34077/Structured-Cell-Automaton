@@ -1,6 +1,10 @@
 import unittest
+from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
+
+
+APP_PATH = Path(__file__).resolve().parents[2] / "sca_gui.py"
 
 
 class StreamlitStateRegressionTests(unittest.TestCase):
@@ -14,8 +18,11 @@ class StreamlitStateRegressionTests(unittest.TestCase):
         messages = [str(exc.value) for exc in app.exception]
         self.assertEqual(messages, [], "\n".join(messages))
 
+    def _new_app(self):
+        return AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+
     def test_memory_and_emitted_state_survive_sequential_button_reruns(self):
-        app = AppTest.from_file("sca_gui.py", default_timeout=30).run()
+        app = self._new_app()
         self._assert_no_app_exception(app)
 
         self._button(app, "初回進化・発話").click().run()
@@ -32,7 +39,7 @@ class StreamlitStateRegressionTests(unittest.TestCase):
         self.assertGreater(len(app.session_state["sca_memory_zone"].pool), 0)
 
     def test_natural_language_reactivation_keeps_prior_memory(self):
-        app = AppTest.from_file("sca_gui.py", default_timeout=30).run()
+        app = self._new_app()
         self._button(app, "初回進化・発話").click().run()
         self._assert_no_app_exception(app)
 
