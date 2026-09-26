@@ -99,6 +99,50 @@ class StreamlitStateRegressionTests(unittest.TestCase):
         self._button(app, "世代淘汰（60世代超）").click().run()
         self._assert_no_app_exception(app)
 
+    def test_unrelated_analysis_rerun_reuses_visualization_cache(self):
+        app = self._new_app()
+        self._assert_no_app_exception(app)
+
+        try:
+            cache = app.session_state["sca_visualization_cache"]
+        except KeyError:
+            self.fail("visualization cache is not persisted in Streamlit session state")
+        initial_counts = {name: entry["build_count"] for name, entry in cache.items()}
+        self.assertGreaterEqual(len(initial_counts), 3)
+
+        app.text_input[0].set_value("昨日、都市を歩いた").run()
+        self._button(app, "意味タグに変換").click().run()
+        self._assert_no_app_exception(app)
+
+        after = app.session_state["sca_visualization_cache"]
+        after_counts = {name: entry["build_count"] for name, entry in after.items()}
+        self.assertEqual(after_counts, initial_counts)
+
+    def test_pruning_reports_removed_count_and_pool_transition(self):
+        app = self._new_app()
+        self._button(app, "初回進化・発話").click().run()
+        self._assert_no_app_exception(app)
+
+        self._button(app, "スコア淘汰（<0.3）").click().run()
+        self._assert_no_app_exception(app)
+
+        status = app.session_state.get("sca_last_operation_status")
+        self.assertIsInstance(status, str)
+        self.assertIn("削除", status)
+        self.assertIn("→", status)
+        rendered = "\n".join(str(item.value) for item in app.markdown)
+        self.assertIn(status, rendered)
+
+    def test_evolution_reports_emission_count_even_when_zero(self):
+        app = self._new_app()
+        self._button(app, "進化 → 評価 → 発話チェック").click().run()
+        self._assert_no_app_exception(app)
+
+        status = app.session_state.get("sca_last_operation_status")
+        self.assertIsInstance(status, str)
+        self.assertIn("発話件数", status)
+        self.assertRegex(status, r"発話件数: \d+件")
+
 
 if __name__ == "__main__":
     unittest.main()
