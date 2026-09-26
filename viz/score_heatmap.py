@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False, figsize=(6, 4)):
+def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False, figsize=(6, 4), render=True):
     import matplotlib
     import matplotlib.pyplot as plt
 
@@ -18,12 +18,13 @@ def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False, figsize=
         ax.set_xlabel("出力ステップ")
         ax.set_ylabel("意味タグ")
 
-        if use_streamlit:
-            import streamlit as st
-            st.pyplot(fig)
-        else:
-            plt.show()
-        return
+        if render:
+            if use_streamlit:
+                import streamlit as st
+                st.pyplot(fig)
+            else:
+                plt.show()
+        return fig
     
     # ✅ SIDの重複を排除（最初に出現した構文のみ使用）
     seen_sids = set()
@@ -54,8 +55,10 @@ def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False, figsize=
     ax.set_xlabel("出力ステップ")
     ax.set_ylabel("意味タグ")
 
-    if use_streamlit:
-        import streamlit as st
-        st.pyplot(fig)
-    else:
-        plt.show()
+    if render:
+        if use_streamlit:
+            import streamlit as st
+            st.pyplot(fig)
+        else:
+            plt.show()
+    return fig
