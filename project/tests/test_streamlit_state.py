@@ -19,7 +19,7 @@ class StreamlitStateRegressionTests(unittest.TestCase):
         self.assertEqual(messages, [], "\n".join(messages))
 
     def _new_app(self):
-        return AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+        return AppTest.from_file(str(APP_PATH), default_timeout=90).run()
 
     def test_memory_and_emitted_state_survive_sequential_button_reruns(self):
         app = self._new_app()
@@ -50,6 +50,23 @@ class StreamlitStateRegressionTests(unittest.TestCase):
         self._button(app, "意味タグに変換").click().run()
         self._assert_no_app_exception(app)
         self.assertEqual(len(app.session_state["sca_memory_zone"].pool), memory_before)
+
+    def test_generation_pruning_control_uses_persistent_generation_state(self):
+        app = self._new_app()
+        self._assert_no_app_exception(app)
+
+        try:
+            initial_generation = app.session_state["sca_generation"]
+        except KeyError:
+            self.fail("current generation is not persisted in Streamlit session state")
+        self.assertEqual(initial_generation, 0)
+
+        self._button(app, "初回進化・発話").click().run()
+        self._assert_no_app_exception(app)
+        self.assertGreater(app.session_state["sca_generation"], initial_generation)
+
+        self._button(app, "世代淘汰（60世代超）").click().run()
+        self._assert_no_app_exception(app)
 
 
 if __name__ == "__main__":

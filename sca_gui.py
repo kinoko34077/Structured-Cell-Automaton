@@ -1,6 +1,7 @@
 # sca_gui.py
 import streamlit as st
 from core import Cell, Syntax, MemoryZone, OutputZone
+from core.memory_zone import DEFAULT_MAX_AGE_GENERATIONS, prune_memory_by_generation
 from engine.syntax_extractor import extract_syntax_from_cells
 
 from engine.scoring import evaluate_syntax
@@ -76,10 +77,16 @@ if "sca_memory_zone" not in st.session_state:
     st.session_state.sca_memory_zone = MemoryZone()
 if "sca_emitted" not in st.session_state:
     st.session_state.sca_emitted = []
+if "sca_generation" not in st.session_state:
+    st.session_state.sca_generation = 0
 
 oz = st.session_state.sca_output_zone
 mz = st.session_state.sca_memory_zone
 emitted = st.session_state.sca_emitted
+
+def advance_current_generation(steps=1):
+    st.session_state.sca_generation += steps
+    return st.session_state.sca_generation
 
 # ------------
 # 改良版進化ループ（tag-based crossover）
@@ -96,6 +103,7 @@ def evolve_generation_with_tags(syntaxes, cell_dict, top_k=4):
 
 # 世代操作
 if st.button("進化 → 評価 → 発話チェック"):
+    advance_current_generation()
     generation = syntax_pool.copy()
     for gen in range(5):
         for syn in generation:
@@ -140,8 +148,9 @@ def debug_reactivation(memory_zone, current_tags):
 # GUIボタン操作群
 st.subheader("操作パネル")
 if st.button("初回進化・発話"):
+    current_generation = advance_current_generation()
     for syn in syntax_pool:
-        mz.store(syn)
+        mz.store(syn, current_gen=current_generation)
     generation = syntax_pool.copy()
     for gen in range(5):
         for syn in generation:
@@ -155,8 +164,9 @@ if st.button("初回進化・発話"):
 
 # 内的思考ループボタン処理
 if st.button("内的思考ループ実行"):
+    current_generation = advance_current_generation()
     debug_reactivation(mz, [t for syn in emitted for t in syn.tags])
-    emitted = simulate_thought_cycle(emitted, cell_dict, mz, oz)
+    emitted = simulate_thought_cycle(emitted, cell_dict, mz, oz, current_generation=current_generation)
     st.session_state.sca_emitted = emitted
 
     if emitted:
@@ -220,9 +230,9 @@ if st.button("スコア淘汰（<0.3）"):
     mz.prune_by_score(min_score=0.3)
     st.success("スコアによる構文淘汰を実行しました。")
 
-if st.button("時間淘汰（60秒以上経過）"):
-    mz.prune_by_age(age_limit=60)
-    st.success("時間ベースで古い構文を淘汰しました。")
+if st.button(f"世代淘汰（{DEFAULT_MAX_AGE_GENERATIONS}世代超）"):
+    prune_memory_by_generation(mz, current_generation=st.session_state.sca_generation)
+    st.success("世代差に基づいて古い構文を淘汰しました。")
 
 if st.button("類似構文淘汰（閾値=0.9）"):
     mz.prune_by_similarity(threshold=0.9)
