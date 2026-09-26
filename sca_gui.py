@@ -79,6 +79,8 @@ if "sca_emitted" not in st.session_state:
     st.session_state.sca_emitted = []
 if "sca_generation" not in st.session_state:
     st.session_state.sca_generation = 0
+if "sca_last_analysis" not in st.session_state:
+    st.session_state.sca_last_analysis = None
 
 oz = st.session_state.sca_output_zone
 mz = st.session_state.sca_memory_zone
@@ -188,16 +190,27 @@ if st.button("意味タグに変換"):
     inferred_tags = map_sentence_to_tags(user_input)
     expanded_tags = expand_tags(inferred_tags)
 
-    st.write("抽出された意味タグ:", inferred_tags)
-    st.write("拡張されたトリガータグ:", expanded_tags)
-
     # MemoryZoneに対してタグをトリガーとして再活性化処理
     reactivated = mz.reactivate_candidates(expanded_tags)
+    st.session_state.sca_last_analysis = {
+        "input": user_input,
+        "inferred_tags": list(inferred_tags),
+        "expanded_tags": list(expanded_tags),
+        "reactivated_lines": [linearize_syntax(syn, cell_dict) for syn in reactivated],
+    }
 
-    if reactivated:
+last_analysis = st.session_state.sca_last_analysis
+if last_analysis:
+    inferred_label = ", ".join(last_analysis["inferred_tags"]) or "（なし）"
+    expanded_label = ", ".join(last_analysis["expanded_tags"]) or "（なし）"
+    st.markdown(f"**前回の分析対象:** {last_analysis['input']}")
+    st.markdown(f"**抽出された意味タグ:** {inferred_label}")
+    st.markdown(f"**拡張されたトリガータグ:** {expanded_label}")
+
+    if last_analysis["reactivated_lines"]:
         st.subheader("意味タグに基づく再活性構文:")
-        for syn in reactivated:
-            st.markdown(f"→ {linearize_syntax(syn, cell_dict)}")
+        for line in last_analysis["reactivated_lines"]:
+            st.markdown(f"→ {line}")
     else:
         st.warning("対応する再活性構文は見つかりませんでした。")
 # -----
