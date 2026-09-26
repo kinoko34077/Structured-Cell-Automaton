@@ -9,7 +9,7 @@ from sklearn.metrics.pairwise import cosine_similarity  # 🔧 追加
 import matplotlib
 matplotlib.rcParams['font.family'] = 'MS Gothic'  # または 'Yu Gothic' や 'Meiryo'
 
-def visualize_syntax_clusters(syntaxes, tag_index: dict, use_streamlit: bool = False, figsize=(6, 4)):
+def visualize_syntax_clusters(syntaxes, tag_index: dict, use_streamlit: bool = False, figsize=(6, 4), render: bool = True):
     dim = len(tag_index)
     vectors = np.array([build_tag_vector(s, tag_index, dim) for s in syntaxes])
 
@@ -30,8 +30,10 @@ def visualize_syntax_clusters(syntaxes, tag_index: dict, use_streamlit: bool = F
     nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=1000, font_size=10)
     plt.title("Semantic Cluster Map (構文意味ネットワーク)")
 
-    if use_streamlit:
-        import streamlit as st
-        st.pyplot(fig)
-    else:
-        plt.show()
+    if render:
+        if use_streamlit:
+            import streamlit as st
+            st.pyplot(fig)
+        else:
+            plt.show()
+    return fig
