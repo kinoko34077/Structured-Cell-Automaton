@@ -39,7 +39,7 @@ def simulate_thought_cycle(
             result += emitted_syntaxes  # 🔹 ← 蓄積
 
             for syn in emitted_syntaxes:  # 🔹 ← ここが記憶圏保存箇所
-                memory_zone.store(syn)
+                memory_zone.store(syn, current_gen=current_generation)
         
         generation = evolve_generation_with_tags(generation, cell_dict) # 本来は「前回の generation を進化」すべき
 

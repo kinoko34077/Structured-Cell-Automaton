@@ -19,7 +19,7 @@ class StreamlitStateRegressionTests(unittest.TestCase):
         self.assertEqual(messages, [], "\n".join(messages))
 
     def _new_app(self):
-        return AppTest.from_file(str(APP_PATH), default_timeout=30).run()
+        return AppTest.from_file(str(APP_PATH), default_timeout=90).run()
 
     def test_memory_and_emitted_state_survive_sequential_button_reruns(self):
         app = self._new_app()

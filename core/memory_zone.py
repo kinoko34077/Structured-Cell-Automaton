@@ -9,6 +9,12 @@ import time
 from typing import List, Optional
 from core import Syntax
 
+DEFAULT_MAX_AGE_GENERATIONS = 60
+
+def prune_memory_by_generation(memory_zone, current_generation: int, max_age_generations: int = DEFAULT_MAX_AGE_GENERATIONS):
+    """世代差による記憶淘汰を設定値から実行する。"""
+    memory_zone.prune_by_generation(current_gen=current_generation, max_age=max_age_generations)
+
 class MemoryZone:
     """
     記憶圏クラス。構文を辞書で管理し、再活性や世代淘汰を提供する。

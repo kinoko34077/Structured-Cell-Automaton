@@ -14,6 +14,8 @@ Last verified: 2026-09-26 — behavioral Streamlit AppTest maintenance
 - Project-owned Streamlit AppTest verification for sequential GUI reruns
 - Generated cells/syntax pool, `MemoryZone`, `OutputZone`, and emitted syntax state persist within a Streamlit session
 - Memory reactivation debug output reads the actual `MemoryZone.pool` representation
+- Memory retention age is defined in generations, with a configurable default threshold of 60 generations
+- Streamlit session state preserves the current generation counter and stored syntax generation stamps
 
 ## Default state
 
@@ -23,13 +25,13 @@ Last verified: 2026-09-26 — behavioral Streamlit AppTest maintenance
 
 - Domain algorithms, visualization, and persistence semantics remain Project-owned.
 - Installing `requirements.txt` remains an explicit local setup action.
-- The `時間淘汰（60秒以上経過）` GUI action is currently invalid: it calls nonexistent `MemoryZone.prune_by_age()`, while the available pruning API is generation-based `prune_by_generation()`. Seconds and generations are not equivalent, so this remains open as repository Issue #5 until the intended semantic is defined.
+- The pruning control uses generation age only; wall-clock timestamps are intentionally not part of this feature.
 - CI may emit Japanese-font warnings because the Linux runner does not provide the locally assumed `MS Gothic`; these warnings do not fail the current behavioral AppTest suite.
 
 ## Next work
 
 1. Preserve the existing Streamlit implementation as a Project override.
-2. Resolve Issue #5 only after choosing wall-clock-age or generation-age semantics for the pruning control.
+2. Keep generation-retention policy changes behind the named threshold/helper boundary.
 3. Extend Project-specific behavioral tests when another real user path is repaired.
 4. Consider further Default adoption only where it removes a real duplicate.
 

@@ -14,6 +14,8 @@ syntax generation, extraction, evolution, scoring, and visualization.
 3. `knt base-check` detects changes to common Base files.
 4. `knt dev` reaches the existing Streamlit entry point.
 5. No Domain file is moved merely to satisfy the Base structure.
+6. Memory-age pruning is defined only by generation difference; the default maximum age is 60 generations and is exposed through a named policy constant/helper.
+7. The Streamlit session maintains the current generation and stamps memories when they are stored.
 
 ## Ownership boundary
 
@@ -28,7 +30,8 @@ syntax generation, extraction, evolution, scoring, and visualization.
 
 - Setup: `python -m pip install -r requirements.txt`
 - Development: `streamlit run sca_gui.py`
-- Verify: `knt verify` (no Project test command is currently registered)
+- Test: `knt test` -> `python -m unittest discover -s project/tests -v`
+- Verify: `knt verify` -> the same Project-owned unittest suite
 
 ## Constraints
 
