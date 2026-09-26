@@ -30,25 +30,34 @@ st.title("🧠 SCA 構文セル・オートマトン GUI")
 # initial_cells = [cell1, cell2, cell3]
 
 # セル生成（20個例）
-initial_cells = generate_balanced_cells()
-cell_dict = {c.id: c for c in initial_cells}
+if "sca_initial_cells" not in st.session_state:
+    initial_cells = generate_balanced_cells()
+    cell_dict = {c.id: c for c in initial_cells}
+
+    extracted = extract_syntax_from_cells(initial_cells)
+    if extracted:
+        mutated = extracted[0].mutate()
+        syntax_pool = extracted + [mutated]
+    else:
+        syntax_pool = []
+
+    for syn in syntax_pool:
+        evaluate_syntax(syn, cell_dict, memory_pool=syntax_pool)
+
+    st.session_state.sca_initial_cells = initial_cells
+    st.session_state.sca_cell_dict = cell_dict
+    st.session_state.sca_syntax_pool = syntax_pool
+
+initial_cells = st.session_state.sca_initial_cells
+cell_dict = st.session_state.sca_cell_dict
+syntax_pool = st.session_state.sca_syntax_pool
 
 # セル表示
 st.subheader("セル情報")
 for c in initial_cells:
     st.write(c)
 
-# 構文抽出（スライディングウィンドウ風に抽出範囲を制御して10件目安で取得）
-extracted = extract_syntax_from_cells(initial_cells)
-if extracted:
-    mutated = extracted[0].mutate()
-    syntax_pool = extracted + [mutated]
-else:
-    syntax_pool = []
-
 # 評価・クラスタ
-for syn in syntax_pool:
-    evaluate_syntax(syn, cell_dict, memory_pool=syntax_pool)
 clusters = cluster_syntaxes_by_tags(syntax_pool)
 
 # --------------
@@ -61,8 +70,16 @@ for syn in syntax_pool:
     st.markdown(f"- {syn.sid[:8]} | score={syn.score:.3f} | tags={syn.tags}")
 
 # 発話ゾーン
-oz = OutputZone(capacity=1, activation_threshold=0.6)
-emitted = []
+if "sca_output_zone" not in st.session_state:
+    st.session_state.sca_output_zone = OutputZone(capacity=1, activation_threshold=0.6)
+if "sca_memory_zone" not in st.session_state:
+    st.session_state.sca_memory_zone = MemoryZone()
+if "sca_emitted" not in st.session_state:
+    st.session_state.sca_emitted = []
+
+oz = st.session_state.sca_output_zone
+mz = st.session_state.sca_memory_zone
+emitted = st.session_state.sca_emitted
 
 # ------------
 # 改良版進化ループ（tag-based crossover）
@@ -87,6 +104,7 @@ if st.button("進化 → 評価 → 発話チェック"):
             
         if oz.should_emit():
             emitted = oz.emit()
+            st.session_state.sca_emitted = emitted
             break
         generation = evolve_generation_with_tags(generation, cell_dict)  # ← 意味タグベース交叉
 
@@ -112,16 +130,12 @@ visualize_syntax_clusters(syntax_pool, tag_index, use_streamlit=True)   # 可視
 # デバッグ出力関数を追加
 def debug_reactivation(memory_zone, current_tags):
     print("\n[DEBUG] Reactivation trigger tags:", current_tags)
-    for sid, entry in memory_zone.memory.items():
-        syntax = entry["syntax"]
+    for sid, syntax in memory_zone.pool.items():
         overlap = set(syntax.tags).intersection(current_tags)
         print(f"- {sid[:8]} | tags={syntax.tags} | overlap={list(overlap)}")
 
 # -------
 # MemoryZone + 内的思考ボタン
-
-# 記憶ゾーンと出力ゾーンを初期化
-mz = MemoryZone()
 
 # GUIボタン操作群
 st.subheader("操作パネル")
@@ -135,6 +149,7 @@ if st.button("初回進化・発話"):
             oz.add_syntax(syn)
         if oz.should_emit():
             emitted = oz.emit()
+            st.session_state.sca_emitted = emitted
             break
         generation = evolve_generation_with_tags(generation, cell_dict)  # ← 意味タグベース交叉
 
@@ -142,6 +157,7 @@ if st.button("初回進化・発話"):
 if st.button("内的思考ループ実行"):
     debug_reactivation(mz, [t for syn in emitted for t in syn.tags])
     emitted = simulate_thought_cycle(emitted, cell_dict, mz, oz)
+    st.session_state.sca_emitted = emitted
 
     if emitted:
         st.subheader("発話構文（内的思考ループ）:")

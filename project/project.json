@@ -34,9 +34,19 @@
       "cwd": ".",
       "forward_args": false
     },
-    "test": "",
+    "test": {
+      "exec": "python",
+      "args": ["-m", "unittest", "discover", "-s", "project/tests", "-v"],
+      "cwd": ".",
+      "forward_args": false
+    },
     "build": "",
-    "verify": "",
+    "verify": {
+      "exec": "python",
+      "args": ["-m", "unittest", "discover", "-s", "project/tests", "-v"],
+      "cwd": ".",
+      "forward_args": false
+    },
     "smoke": "",
     "deploy": ""
   },
@@ -48,6 +58,7 @@
   },
   "notes": [
     "This adoption adds the KiNoTch Base and Project Overlay without moving Streamlit or Domain files.",
-    "Streamlit UI, data files, persistence, and visualization remain Project-owned."
+    "Streamlit UI, data files, persistence, and visualization remain Project-owned.",
+    "Project-owned verification uses Streamlit AppTest to exercise sequential GUI reruns and session-state behavior."
   ]
 }
