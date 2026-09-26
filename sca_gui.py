@@ -9,6 +9,11 @@ from engine.evolver import evolve_generation, crossover_tags
 from core.linearizer import linearize_syntax
 from engine.clustering import cluster_syntaxes_by_tags
 from viz.cluster_map import visualize_syntax_clusters
+from project.ui_visualization_cache import (
+    figure_to_png_bytes,
+    get_cached_visualization,
+    syntax_visual_signature,
+)
 
 from engine.think_loop import simulate_thought_cycle
 
@@ -81,14 +86,24 @@ if "sca_generation" not in st.session_state:
     st.session_state.sca_generation = 0
 if "sca_last_analysis" not in st.session_state:
     st.session_state.sca_last_analysis = None
+if "sca_visualization_cache" not in st.session_state:
+    st.session_state.sca_visualization_cache = {}
+if "sca_last_operation_status" not in st.session_state:
+    st.session_state.sca_last_operation_status = ""
 
 oz = st.session_state.sca_output_zone
 mz = st.session_state.sca_memory_zone
 emitted = st.session_state.sca_emitted
+visualization_cache = st.session_state.sca_visualization_cache
 
 def advance_current_generation(steps=1):
     st.session_state.sca_generation += steps
     return st.session_state.sca_generation
+
+
+def set_operation_status(message):
+    st.session_state.sca_last_operation_status = message
+
 
 # ------------
 # 改良版進化ループ（tag-based crossover）
@@ -107,6 +122,7 @@ def evolve_generation_with_tags(syntaxes, cell_dict, top_k=4):
 if st.button("進化 → 評価 → 発話チェック"):
     advance_current_generation()
     generation = syntax_pool.copy()
+    action_emitted_count = 0
     for gen in range(5):
         for syn in generation:
             evaluate_syntax(syn, cell_dict)
@@ -115,8 +131,10 @@ if st.button("進化 → 評価 → 発話チェック"):
         if oz.should_emit():
             emitted = oz.emit()
             st.session_state.sca_emitted = emitted
+            action_emitted_count = len(emitted)
             break
         generation = evolve_generation_with_tags(generation, cell_dict)  # ← 意味タグベース交叉
+    set_operation_status(f"進化処理完了 — 発話件数: {action_emitted_count}件")
 
 # 出力表示
 if emitted:
@@ -133,8 +151,16 @@ if emitted:
 st.subheader("意味クラスタ可視化")
 all_tags = sorted(set(tag for syn in syntax_pool for tag in syn.tags))
 tag_index = {tag: i for i, tag in enumerate(all_tags)}
-
-visualize_syntax_clusters(syntax_pool, tag_index, use_streamlit=True)   # 可視化（streamlit=Trueを明示）
+cluster_signature = syntax_visual_signature(syntax_pool)
+cluster_png = get_cached_visualization(
+    visualization_cache,
+    "cluster",
+    cluster_signature,
+    lambda: figure_to_png_bytes(
+        visualize_syntax_clusters(syntax_pool, tag_index, use_streamlit=False, render=False)
+    ),
+)
+st.image(cluster_png)
 
 # -------
 # デバッグ出力関数を追加
@@ -154,6 +180,7 @@ if st.button("初回進化・発話"):
     for syn in syntax_pool:
         mz.store(syn, current_gen=current_generation)
     generation = syntax_pool.copy()
+    action_emitted_count = 0
     for gen in range(5):
         for syn in generation:
             evaluate_syntax(syn, cell_dict)
@@ -161,8 +188,10 @@ if st.button("初回進化・発話"):
         if oz.should_emit():
             emitted = oz.emit()
             st.session_state.sca_emitted = emitted
+            action_emitted_count = len(emitted)
             break
         generation = evolve_generation_with_tags(generation, cell_dict)  # ← 意味タグベース交叉
+    set_operation_status(f"初回進化処理完了 — 発話件数: {action_emitted_count}件")
 
 # 内的思考ループボタン処理
 if st.button("内的思考ループ実行"):
@@ -170,6 +199,7 @@ if st.button("内的思考ループ実行"):
     debug_reactivation(mz, [t for syn in emitted for t in syn.tags])
     emitted = simulate_thought_cycle(emitted, cell_dict, mz, oz, current_generation=current_generation)
     st.session_state.sca_emitted = emitted
+    set_operation_status(f"内的思考ループ完了 — 発話件数: {len(emitted)}件")
 
     if emitted:
         st.subheader("発話構文（内的思考ループ）:")
@@ -219,13 +249,32 @@ if last_analysis:
 from viz.genealogy_plot import draw_syntax_genealogy
 
 st.subheader("構文進化系譜")
-draw_syntax_genealogy(syntax_pool + emitted, use_streamlit=True)
+combined_syntaxes = syntax_pool + emitted
+genealogy_signature = syntax_visual_signature(combined_syntaxes)
+genealogy_png = get_cached_visualization(
+    visualization_cache,
+    "genealogy",
+    genealogy_signature,
+    lambda: figure_to_png_bytes(
+        draw_syntax_genealogy(combined_syntaxes, use_streamlit=False, render=False)
+    ),
+)
+st.image(genealogy_png)
 
 # 共起ネットワーク描画モジュール
 from viz.cooccurrence_net import draw_tag_cooccurrence_network
 
 st.subheader("意味タグ共起ネットワーク")
-draw_tag_cooccurrence_network(syntax_pool + emitted, use_streamlit=True)
+cooccurrence_signature = syntax_visual_signature(combined_syntaxes)
+cooccurrence_png = get_cached_visualization(
+    visualization_cache,
+    "cooccurrence",
+    cooccurrence_signature,
+    lambda: figure_to_png_bytes(
+        draw_tag_cooccurrence_network(combined_syntaxes, use_streamlit=False, render=False)
+    ),
+)
+st.image(cooccurrence_png)
 
 
 # 出力スコアヒートマップ
@@ -234,19 +283,44 @@ from viz.score_heatmap import draw_score_heatmap
 if emitted:
     st.subheader("スコア出力ヒートマップ")
     all_tags = sorted(set(tag for syn in syntax_pool + emitted for tag in syn.tags))
-    draw_score_heatmap(emitted, all_tags, use_streamlit=True)
+    heatmap_signature = (syntax_visual_signature(emitted), tuple(all_tags))
+    heatmap_png = get_cached_visualization(
+        visualization_cache,
+        "heatmap",
+        heatmap_signature,
+        lambda: figure_to_png_bytes(
+            draw_score_heatmap(emitted, all_tags, use_streamlit=False, render=False)
+        ),
+    )
+    st.image(heatmap_png)
 
 # 構文淘汰ツール
 st.subheader("構文淘汰ツール")
 
 if st.button("スコア淘汰（<0.3）"):
+    before = len(mz.pool)
     mz.prune_by_score(min_score=0.3)
-    st.success("スコアによる構文淘汰を実行しました。")
+    after = len(mz.pool)
+    status = f"スコア淘汰: {before - after}件削除（{before}→{after}）"
+    set_operation_status(status)
+    st.success(status)
 
 if st.button(f"世代淘汰（{DEFAULT_MAX_AGE_GENERATIONS}世代超）"):
+    before = len(mz.pool)
     prune_memory_by_generation(mz, current_generation=st.session_state.sca_generation)
-    st.success("世代差に基づいて古い構文を淘汰しました。")
+    after = len(mz.pool)
+    status = f"世代淘汰: {before - after}件削除（{before}→{after}）"
+    set_operation_status(status)
+    st.success(status)
 
 if st.button("類似構文淘汰（閾値=0.9）"):
+    before = len(mz.pool)
     mz.prune_by_similarity(threshold=0.9)
-    st.success("類似タグを持つ冗長構文を圧縮しました。")
+    after = len(mz.pool)
+    status = f"類似構文淘汰: {before - after}件削除（{before}→{after}）"
+    set_operation_status(status)
+    st.success(status)
+
+last_operation_status = st.session_state.sca_last_operation_status
+if last_operation_status:
+    st.markdown(f"**直近操作:** {last_operation_status}")
