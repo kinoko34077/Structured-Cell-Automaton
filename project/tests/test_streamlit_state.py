@@ -100,5 +100,28 @@ class StreamlitStateRegressionTests(unittest.TestCase):
         self._assert_no_app_exception(app)
 
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_evolution_and_pruning_report_effect_or_noop_status(self):
+        app = self._new_app()
+
+        self._button(app, "進化 → 評価 → 発話チェック").click().run()
+        self._assert_no_app_exception(app)
+        evolution_messages = [
+            str(item.value)
+            for item in (*app.success, *app.info, *app.warning)
+        ]
+        self.assertTrue(
+            any("発話" in message for message in evolution_messages),
+            evolution_messages,
+        )
+
+        self._button(app, "スコア淘汰（<0.3）").click().run()
+        self._assert_no_app_exception(app)
+        pruning_messages = [
+            str(item.value)
+            for item in (*app.success, *app.info, *app.warning)
+        ]
+        self.assertTrue(
+            any("件" in message or "変化なし" in message for message in pruning_messages),
+            pruning_messages,
+        )
+

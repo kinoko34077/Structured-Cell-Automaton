@@ -13,7 +13,7 @@ DEFAULT_MAX_AGE_GENERATIONS = 60
 
 def prune_memory_by_generation(memory_zone, current_generation: int, max_age_generations: int = DEFAULT_MAX_AGE_GENERATIONS):
     """世代差による記憶淘汰を設定値から実行する。"""
-    memory_zone.prune_by_generation(current_gen=current_generation, max_age=max_age_generations)
+    return memory_zone.prune_by_generation(current_gen=current_generation, max_age=max_age_generations)
 
 class MemoryZone:
     """
@@ -53,20 +53,25 @@ class MemoryZone:
 
     def prune_by_score(self, min_score=0.3):
         """スコアが一定未満の構文を淘汰"""
+        before_count = len(self.pool)
         self.pool = {
             sid: s for sid, s in self.pool.items()
             if s.score >= min_score
         }
+        return before_count - len(self.pool)
 
     def prune_by_generation(self, current_gen: int, max_age: int = 60):
         """世代差がmax_age以上の構文を淘汰"""
+        before_count = len(self.pool)
         self.pool = {
             sid: s for sid, s in self.pool.items()
             if hasattr(s, "generation_stamp") and (current_gen - s.generation_stamp) <= max_age
         }
+        return before_count - len(self.pool)
 
     def prune_by_similarity(self, threshold=0.9):
         """類似タグをもつ冗長構文を圧縮（タグのJaccard類似）"""
+        before_count = len(self.pool)
         unique = {}
         for sid, s in self.pool.items():
             if all(
@@ -75,6 +80,7 @@ class MemoryZone:
             ):
                 unique[sid] = s
         self.pool = unique
+        return before_count - len(self.pool)
 
     def auto_optimize(self, score_thresh=0.3, age_limit=60, similarity_thresh=0.9, current_gen=0):
         """
