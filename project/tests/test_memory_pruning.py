@@ -25,6 +25,21 @@ class GenerationPruningContractTests(unittest.TestCase):
         self.assertNotIn("old", zone.pool)
         self.assertIn("fresh", zone.pool)
 
+    def test_pruning_methods_report_removed_count(self):
+        zone = MemoryZone()
+        low = SimpleNamespace(sid="low", tags=["low"], score=0.1)
+        high = SimpleNamespace(sid="high", tags=["high"], score=0.9)
+        zone.store(low, current_gen=0)
+        zone.store(high, current_gen=50)
+
+        self.assertEqual(zone.prune_by_score(min_score=0.3), 1)
+        self.assertEqual(zone.prune_by_generation(current_gen=111, max_age=60), 1)
+
+        empty = MemoryZone()
+        self.assertEqual(empty.prune_by_score(min_score=0.3), 0)
+        self.assertEqual(empty.prune_by_generation(current_gen=1, max_age=60), 0)
+        self.assertEqual(empty.prune_by_similarity(threshold=0.9), 0)
+
 
 if __name__ == "__main__":
     unittest.main()
