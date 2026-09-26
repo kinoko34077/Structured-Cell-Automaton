@@ -2,7 +2,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
-def draw_syntax_genealogy(syntaxes, use_streamlit=False, figsize=(6, 4)):
+def draw_syntax_genealogy(syntaxes, use_streamlit=False, figsize=(6, 4), render=True):
     G = nx.DiGraph()
 
     for syn in syntaxes:
@@ -19,8 +19,10 @@ def draw_syntax_genealogy(syntaxes, use_streamlit=False, figsize=(6, 4)):
     nx.draw(G, pos, with_labels=True, node_color='lightgreen', node_size=1000, font_size=10)
     plt.title("構文進化系譜 (SID Genealogy)")
 
-    if use_streamlit:
-        import streamlit as st
-        st.pyplot(fig)
-    else:
-        plt.show()
+    if render:
+        if use_streamlit:
+            import streamlit as st
+            st.pyplot(fig)
+        else:
+            plt.show()
+    return fig
