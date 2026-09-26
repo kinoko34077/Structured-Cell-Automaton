@@ -54,3 +54,4 @@ def draw_tag_cooccurrence_network(syntaxes, use_streamlit=False, figsize=(6, 4))
         st.pyplot(fig)
     else:
         plt.show()
+    return fig
