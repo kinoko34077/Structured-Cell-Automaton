@@ -125,3 +125,7 @@ class StreamlitStateRegressionTests(unittest.TestCase):
             pruning_messages,
         )
 
+
+
+if __name__ == "__main__":
+    unittest.main()
