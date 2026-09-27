@@ -15,7 +15,7 @@ from engine.think_loop import simulate_thought_cycle
 from engine.sca_data import generate_diverse_cells, generate_balanced_cells
 
 from tagging import map_sentence_to_tags, expand_tags
-from project.ui_helpers import get_cached_figure
+from project.ui_helpers import get_cached_figure, syntax_signature
 
 
 st.set_page_config(page_title="SCA GUI", layout="wide")
@@ -23,16 +23,8 @@ st.set_page_config(page_title="SCA GUI", layout="wide")
 st.title("🧠 SCA 構文セル・オートマトン GUI")
 
 
-def _syntax_signature(syntaxes):
-    return tuple(
-        (
-            syn.sid,
-            getattr(syn, "parent_sid", None),
-            tuple(syn.tags),
-            syn.score,
-        )
-        for syn in syntaxes
-    )
+def _syntax_signature(syntaxes, include_score=False):
+    return syntax_signature(syntaxes, include_score=include_score)
 
 
 def _show_cached_figure(key, signature, builder):
@@ -282,7 +274,7 @@ if emitted:
     all_tags = sorted(set(tag for syn in syntax_pool + emitted for tag in syn.tags))
     _show_cached_figure(
         "sca_score_heatmap_figure",
-        ("score_heatmap", _syntax_signature(emitted), tuple(all_tags)),
+        ("score_heatmap", _syntax_signature(emitted, include_score=True), tuple(all_tags)),
         lambda: draw_score_heatmap(emitted, all_tags, use_streamlit=True),
     )
 
