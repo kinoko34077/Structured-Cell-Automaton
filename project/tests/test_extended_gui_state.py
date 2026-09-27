@@ -98,6 +98,28 @@ class ExtendedGuiStateTests(unittest.TestCase):
 
         self.assertEqual(augmented_targets, [])
 
+    def test_cell_count_change_waits_for_explicit_apply(self):
+        app = self._new_app()
+        self._assert_no_app_exception(app)
+
+        initial_cells = app.session_state["sca_initial_cells"]
+        initial_count = app.session_state["sca_cell_count"]
+        requested_count = initial_count + 10
+
+        app.slider[0].set_value(requested_count).run()
+        self._assert_no_app_exception(app)
+
+        self.assertIs(app.session_state["sca_initial_cells"], initial_cells)
+        self.assertEqual(app.session_state["sca_cell_count"], initial_count)
+        self.assertEqual(app.session_state["sca_pending_cell_count"], requested_count)
+
+        self._button(app, "セル数を適用").click().run()
+        self._assert_no_app_exception(app)
+
+        self.assertEqual(app.session_state["sca_cell_count"], requested_count)
+        self.assertEqual(len(app.session_state["sca_initial_cells"]), requested_count)
+        self.assertNotEqual(app.session_state["sca_initial_cells"], initial_cells)
+
 
 if __name__ == "__main__":
     unittest.main()

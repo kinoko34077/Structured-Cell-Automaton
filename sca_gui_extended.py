@@ -43,6 +43,11 @@ def _ensure_session_state(cell_count):
     """Initialize the extended experiment once per Streamlit session."""
     if "sca_initial_cells" not in st.session_state:
         st.session_state.sca_initial_cells = generate_balanced_cells(n=cell_count)
+        st.session_state.sca_cell_count = cell_count
+    if "sca_cell_count" not in st.session_state:
+        st.session_state.sca_cell_count = len(st.session_state.sca_initial_cells)
+    if cell_count != st.session_state.sca_cell_count:
+        st.session_state.sca_pending_cell_count = cell_count
     if "sca_syntax_pool" not in st.session_state:
         st.session_state.sca_syntax_pool = extract_syntax_from_cells(
             st.session_state.sca_initial_cells
@@ -61,6 +66,25 @@ _ensure_session_state(num_cells)
 initial_cells = st.session_state.sca_initial_cells
 syntax_pool = st.session_state.sca_syntax_pool
 emitted = st.session_state.sca_emitted
+
+pending_cell_count = st.session_state.get("sca_pending_cell_count")
+if pending_cell_count is not None:
+    st.sidebar.warning(
+        f"セル数 {pending_cell_count} が選択されています。適用するまで現在の実験は維持されます。"
+    )
+    if st.sidebar.button("セル数を適用"):
+        st.session_state.sca_initial_cells = generate_balanced_cells(n=pending_cell_count)
+        st.session_state.sca_syntax_pool = extract_syntax_from_cells(
+            st.session_state.sca_initial_cells
+        )
+        st.session_state.sca_cell_count = pending_cell_count
+        del st.session_state.sca_pending_cell_count
+        st.session_state.sca_emitted = []
+        st.session_state.sca_memory_zone = MemoryZone()
+        st.session_state.sca_output_zone = OutputZone(
+            capacity=3, activation_threshold=0.5
+        )
+        st.session_state.sca_visualization_cache = {}
 
 # =========================
 # 💾 保存・読込：サイドバー統合版
@@ -89,6 +113,8 @@ with col2:
         if os.path.exists(cell_file) and os.path.exists(syntax_file):
             st.session_state.sca_initial_cells = quicksave.load_cells_from_jsonl(cell_file)
             st.session_state.sca_syntax_pool = quicksave.load_syntaxes_from_jsonl(syntax_file)
+            st.session_state.sca_cell_count = len(st.session_state.sca_initial_cells)
+            st.session_state.pop("sca_pending_cell_count", None)
             initial_cells = st.session_state.sca_initial_cells
             syntax_pool = st.session_state.sca_syntax_pool
 
@@ -256,7 +282,7 @@ with col1:
         "cluster",
         cluster_signature,
         lambda: visualize_syntax_clusters(
-            syntax_pool, tag_index, use_streamlit=False, figsize=fig_size
+            syntax_pool, tag_index, use_streamlit=False, show=False, figsize=fig_size
         ),
     )
     st.pyplot(cluster_figure)
@@ -269,7 +295,7 @@ with col2:
         "genealogy",
         syntax_signature(genealogy_input, include_score=False),
         lambda: draw_syntax_genealogy(
-            genealogy_input, use_streamlit=False, figsize=fig_size
+            genealogy_input, use_streamlit=False, show=False, figsize=fig_size
         ),
     )
     st.pyplot(genealogy_figure)
@@ -283,7 +309,7 @@ with col3:
         "cooccurrence",
         syntax_signature(genealogy_input, include_score=False),
         lambda: draw_tag_cooccurrence_network(
-            genealogy_input, use_streamlit=False, figsize=fig_size
+            genealogy_input, use_streamlit=False, show=False, figsize=fig_size
         ),
     )
     st.pyplot(cooccurrence_figure)
@@ -295,7 +321,7 @@ with col4:
         "heatmap",
         (syntax_signature(emitted, include_score=True), tuple(all_tags)),
         lambda: draw_score_heatmap(
-            emitted, all_tags, use_streamlit=False, figsize=fig_size
+            emitted, all_tags, use_streamlit=False, show=False, figsize=fig_size
         ),
     )
     st.pyplot(heatmap_figure)
