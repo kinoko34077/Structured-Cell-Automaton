@@ -2,7 +2,7 @@
 
 Base version: `0.3.8`
 
-Last verified: 2026-09-27 — Issue #8 renderer-specific visualization invalidation review follow-up
+Last verified: 2026-09-27 — merged main verification after Issue #8 renderer-specific visualization invalidation
 
 ## Implemented
 
@@ -53,6 +53,7 @@ Last verified: 2026-09-27 — Issue #8 renderer-specific visualization invalidat
 - Issue #8 RED `36261556758`: missing cache helper, missing pruning counts, and missing evolution outcome status
 - Issue #8 implementation GREEN `36261759834`: `knt doctor`, setup, and full Project verification passed
 - Current-head review follow-up GREEN `36288719942`: renderer-specific signature regression and restored direct test entry point passed at `abf012adb9444aba57034252e8a79d9c9fb98367`
+- Merged-main reconciliation: PR #11 merged at `e32e5c9f8d4b142398dfd24fe3f6a39c03e592c9`; main content matches the reviewed candidate and retains the manual browser/readability boundary
 
 Current AppTest coverage exercises:
 - `初回進化・発話` followed by `内的思考ループ実行` across Streamlit reruns without losing memory state;
