@@ -2,7 +2,7 @@
 
 Base version: `0.3.8`
 
-Last verified: 2026-09-27 — merged main verification after Issue #8 renderer-specific visualization invalidation
+Last verified: 2026-09-27 — Draft PR #14 / follow-up Issue #15 exact-head verification at `f646ad74fb24026d7a30922e68eb12721120deff`
 
 ## Implemented
 
