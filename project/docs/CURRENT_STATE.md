@@ -2,7 +2,7 @@
 
 Base version: `0.3.8`
 
-Last verified: 2026-09-27 — Issue #8 visualization invalidation and operation feedback maintenance
+Last verified: 2026-09-27 — Issue #8 renderer-specific visualization invalidation review follow-up
 
 ## Implemented
 
@@ -17,7 +17,7 @@ Last verified: 2026-09-27 — Issue #8 visualization invalidation and operation 
 - Memory retention age is defined in generations, with a configurable default threshold of 60 generations
 - Streamlit session state preserves the current generation counter and stored syntax generation stamps
 - The latest `意味タグに変換` result is persisted as plain session-state data (`input`, inferred/expanded tags, and already-linearized reactivated lines) and remains visible across unrelated reruns
-- Matplotlib visualization figures are cached in Streamlit session state by deterministic syntax/tag input signatures and re-displayed without rebuilding on unrelated reruns
+- Matplotlib visualization figures are cached in Streamlit session state by renderer-specific deterministic syntax/tag input signatures and re-displayed without rebuilding on unrelated reruns
 - Score, generation, and similarity pruning return deterministic removed counts that the UI reports as effect magnitude or explicit no-op
 - Evolution actions report completion with either emitted output or an explicit no-emission result
 
@@ -52,6 +52,7 @@ Last verified: 2026-09-27 — Issue #8 visualization invalidation and operation 
 - analysis-result continuity TDD: RED `36254170995`; first implementation GREEN `36254348601`
 - Issue #8 RED `36261556758`: missing cache helper, missing pruning counts, and missing evolution outcome status
 - Issue #8 implementation GREEN `36261759834`: `knt doctor`, setup, and full Project verification passed
+- Current-head review follow-up GREEN `36288719942`: renderer-specific signature regression and restored direct test entry point passed at `abf012adb9444aba57034252e8a79d9c9fb98367`
 
 Current AppTest coverage exercises:
 - `初回進化・発話` followed by `内的思考ループ実行` across Streamlit reruns without losing memory state;
