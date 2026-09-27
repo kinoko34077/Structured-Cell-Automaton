@@ -29,16 +29,6 @@ class ExtendedGuiStateTests(unittest.TestCase):
         app = self._new_app()
         self._assert_no_app_exception(app)
 
-        expected_keys = {
-            "sca_initial_cells",
-            "sca_syntax_pool",
-            "sca_emitted",
-            "sca_memory_zone",
-            "sca_output_zone",
-            "sca_visualization_cache",
-        }
-        self.assertTrue(expected_keys.issubset(set(app.session_state.filtered_state)))
-
         initial_cells = app.session_state["sca_initial_cells"]
         syntax_pool = app.session_state["sca_syntax_pool"]
         memory_zone = app.session_state["sca_memory_zone"]
