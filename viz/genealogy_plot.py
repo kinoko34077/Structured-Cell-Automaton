@@ -2,7 +2,7 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
-def draw_syntax_genealogy(syntaxes, use_streamlit=False, figsize=(6, 4)):
+def draw_syntax_genealogy(syntaxes, use_streamlit=False, figsize=(6, 4), show=True):
     G = nx.DiGraph()
 
     for syn in syntaxes:
@@ -22,6 +22,6 @@ def draw_syntax_genealogy(syntaxes, use_streamlit=False, figsize=(6, 4)):
     if use_streamlit:
         import streamlit as st
         st.pyplot(fig)
-    else:
+    elif show:
         plt.show()
     return fig

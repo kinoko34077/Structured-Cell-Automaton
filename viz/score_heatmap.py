@@ -3,7 +3,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import numpy as np
 
-def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False, figsize=(6, 4)):
+def draw_score_heatmap(
+    emitted_syntaxes, all_tags, use_streamlit=False, figsize=(6, 4), show=True
+):
     import matplotlib
     import matplotlib.pyplot as plt
 
@@ -21,7 +23,7 @@ def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False, figsize=
         if use_streamlit:
             import streamlit as st
             st.pyplot(fig)
-        else:
+        elif show:
             plt.show()
         return fig
     
@@ -57,6 +59,6 @@ def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False, figsize=
     if use_streamlit:
         import streamlit as st
         st.pyplot(fig)
-    else:
+    elif show:
         plt.show()
     return fig

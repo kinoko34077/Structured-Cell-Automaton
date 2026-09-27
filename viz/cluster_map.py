@@ -9,7 +9,9 @@ from sklearn.metrics.pairwise import cosine_similarity  # 🔧 追加
 import matplotlib
 matplotlib.rcParams['font.family'] = 'MS Gothic'  # または 'Yu Gothic' や 'Meiryo'
 
-def visualize_syntax_clusters(syntaxes, tag_index: dict, use_streamlit: bool = False, figsize=(6, 4)):
+def visualize_syntax_clusters(
+    syntaxes, tag_index: dict, use_streamlit: bool = False, figsize=(6, 4), show: bool = True
+):
     dim = len(tag_index)
     vectors = np.array([build_tag_vector(s, tag_index, dim) for s in syntaxes])
 
@@ -33,6 +35,6 @@ def visualize_syntax_clusters(syntaxes, tag_index: dict, use_streamlit: bool = F
     if use_streamlit:
         import streamlit as st
         st.pyplot(fig)
-    else:
+    elif show:
         plt.show()
     return fig

@@ -18,7 +18,7 @@ def set_japanese_font():
     print("⚠ 日本語フォントが見つかりません。")
     return None
 
-def draw_tag_cooccurrence_network(syntaxes, use_streamlit=False, figsize=(6, 4)):
+def draw_tag_cooccurrence_network(syntaxes, use_streamlit=False, figsize=(6, 4), show=True):
     # ⬛ フォントを明示的に取得
     font_path = set_japanese_font()
     font_prop = fm.FontProperties(fname=font_path) if font_path else None
@@ -52,6 +52,6 @@ def draw_tag_cooccurrence_network(syntaxes, use_streamlit=False, figsize=(6, 4))
     if use_streamlit:
         import streamlit as st
         st.pyplot(fig)
-    else:
+    elif show:
         plt.show()
     return fig
