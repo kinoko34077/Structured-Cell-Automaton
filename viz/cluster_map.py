@@ -35,3 +35,4 @@ def visualize_syntax_clusters(syntaxes, tag_index: dict, use_streamlit: bool = F
         st.pyplot(fig)
     else:
         plt.show()
+    return fig

@@ -23,7 +23,7 @@ def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False, figsize=
             st.pyplot(fig)
         else:
             plt.show()
-        return
+        return fig
     
     # ✅ SIDの重複を排除（最初に出現した構文のみ使用）
     seen_sids = set()
@@ -59,3 +59,4 @@ def draw_score_heatmap(emitted_syntaxes, all_tags, use_streamlit=False, figsize=
         st.pyplot(fig)
     else:
         plt.show()
+    return fig
