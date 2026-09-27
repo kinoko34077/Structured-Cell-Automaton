@@ -48,6 +48,8 @@ def _ensure_session_state(cell_count):
         st.session_state.sca_cell_count = len(st.session_state.sca_initial_cells)
     if cell_count != st.session_state.sca_cell_count:
         st.session_state.sca_pending_cell_count = cell_count
+    else:
+        st.session_state.pop("sca_pending_cell_count", None)
     if "sca_syntax_pool" not in st.session_state:
         st.session_state.sca_syntax_pool = extract_syntax_from_cells(
             st.session_state.sca_initial_cells
@@ -115,6 +117,12 @@ with col2:
             st.session_state.sca_syntax_pool = quicksave.load_syntaxes_from_jsonl(syntax_file)
             st.session_state.sca_cell_count = len(st.session_state.sca_initial_cells)
             st.session_state.pop("sca_pending_cell_count", None)
+            st.session_state.sca_emitted = []
+            st.session_state.sca_memory_zone = MemoryZone()
+            st.session_state.sca_output_zone = OutputZone(
+                capacity=3, activation_threshold=0.5
+            )
+            st.session_state.sca_visualization_cache = {}
             initial_cells = st.session_state.sca_initial_cells
             syntax_pool = st.session_state.sca_syntax_pool
 

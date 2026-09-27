@@ -72,6 +72,31 @@ class ExtendedGuiStateTests(unittest.TestCase):
         self.assertIs(app.session_state["sca_initial_cells"], loaded_cells)
         self.assertIs(app.session_state["sca_syntax_pool"], loaded_syntaxes)
 
+    def test_load_control_resets_dependent_session_owned_values(self):
+        app = self._new_app()
+        self._assert_no_app_exception(app)
+
+        old_memory_zone = app.session_state["sca_memory_zone"]
+        old_output_zone = app.session_state["sca_output_zone"]
+        old_cache_figures = {
+            key: value["figure"]
+            for key, value in app.session_state["sca_visualization_cache"].items()
+        }
+        app.session_state["sca_emitted"] = [app.session_state["sca_syntax_pool"][0]]
+
+        app.text_input[0].set_value("save_001")
+        self._button(app, LOAD_LABEL).click().run()
+        self._assert_no_app_exception(app)
+
+        self.assertEqual(app.session_state["sca_emitted"], [])
+        self.assertIsNot(app.session_state["sca_memory_zone"], old_memory_zone)
+        self.assertIsNot(app.session_state["sca_output_zone"], old_output_zone)
+        for key, old_figure in old_cache_figures.items():
+            self.assertIsNot(
+                app.session_state["sca_visualization_cache"][key]["figure"],
+                old_figure,
+            )
+
     def test_visualization_figures_reuse_cache_on_unrelated_rerun(self):
         app = self._new_app()
         self._assert_no_app_exception(app)
@@ -119,6 +144,21 @@ class ExtendedGuiStateTests(unittest.TestCase):
         self.assertEqual(app.session_state["sca_cell_count"], requested_count)
         self.assertEqual(len(app.session_state["sca_initial_cells"]), requested_count)
         self.assertNotEqual(app.session_state["sca_initial_cells"], initial_cells)
+
+    def test_cell_count_pending_clears_when_slider_returns_to_applied_value(self):
+        app = self._new_app()
+        self._assert_no_app_exception(app)
+
+        initial_count = app.session_state["sca_cell_count"]
+        app.slider[0].set_value(initial_count + 10).run()
+        self._assert_no_app_exception(app)
+        self.assertEqual(
+            app.session_state["sca_pending_cell_count"], initial_count + 10
+        )
+
+        app.slider[0].set_value(initial_count).run()
+        self._assert_no_app_exception(app)
+        self.assertNotIn("sca_pending_cell_count", app.session_state)
 
 
 if __name__ == "__main__":
