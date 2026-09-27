@@ -13,11 +13,13 @@ Last verified: 2026-09-27 — merged main verification after Issue #8 renderer-s
 - Existing Domain files remain at their original root paths; no bulk move was performed
 - Project-owned Streamlit AppTest verification for sequential GUI reruns
 - Generated cells/syntax pool, `MemoryZone`, `OutputZone`, and emitted syntax state persist within a Streamlit session
+- The extended GUI (`sca_gui_extended.py`) keeps generated/loaded cells, syntax, emitted output, `MemoryZone`, and `OutputZone` in session state across reruns
 - Memory reactivation debug output reads the actual `MemoryZone.pool` representation
 - Memory retention age is defined in generations, with a configurable default threshold of 60 generations
 - Streamlit session state preserves the current generation counter and stored syntax generation stamps
 - The latest `意味タグに変換` result is persisted as plain session-state data (`input`, inferred/expanded tags, and already-linearized reactivated lines) and remains visible across unrelated reruns
 - Matplotlib visualization figures are cached in Streamlit session state by renderer-specific deterministic syntax/tag input signatures and re-displayed without rebuilding on unrelated reruns
+- The extended GUI renders cached figures with `use_streamlit=False` and `st.pyplot`, so unrelated control reruns reuse the four renderer-specific figures
 - Score, generation, and similarity pruning return deterministic removed counts that the UI reports as effect magnitude or explicit no-op
 - Evolution actions report completion with either emitted output or an explicit no-emission result
 
@@ -54,6 +56,7 @@ Last verified: 2026-09-27 — merged main verification after Issue #8 renderer-s
 - Issue #8 implementation GREEN `36261759834`: `knt doctor`, setup, and full Project verification passed
 - Current-head review follow-up GREEN `36288719942`: renderer-specific signature regression and restored direct test entry point passed at `abf012adb9444aba57034252e8a79d9c9fb98367`
 - Merged-main reconciliation: PR #11 merged at `e32e5c9f8d4b142398dfd24fe3f6a39c03e592c9`; main content matches the reviewed candidate and retains the manual browser/readability boundary
+- Issue #3 extended GUI focused AppTest and full Project unittest suite: session state, load persistence, duplicate-append regression, and figure-cache reuse pass on the maintenance branch
 
 Current AppTest coverage exercises:
 - `初回進化・発話` followed by `内的思考ループ実行` across Streamlit reruns without losing memory state;

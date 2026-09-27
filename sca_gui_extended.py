@@ -16,7 +16,11 @@ from engine import (
 from tagging import map_sentence_to_tags, expand_tags
 from save import quicksave
 
-from viz import cluster_map, genealogy_plot, cooccurrence_net, score_heatmap
+from project.ui_helpers import get_cached_figure, syntax_signature
+from viz.cluster_map import visualize_syntax_clusters
+from viz.genealogy_plot import draw_syntax_genealogy
+from viz.cooccurrence_net import draw_tag_cooccurrence_network
+from viz.score_heatmap import draw_score_heatmap
 import pandas as pd
 
 if 'total_generations' not in st.session_state:
@@ -35,9 +39,28 @@ num_generations = st.sidebar.slider("進化世代数", 1, 50, 5)
 top_k = st.sidebar.slider("交叉対象Top-K", 2, 10, 4)
 
 # 後ほど使う変数を一旦初期化
-initial_cells = generate_balanced_cells(n=num_cells)
-syntax_pool = extract_syntax_from_cells(initial_cells)
-emitted = []
+def _ensure_session_state(cell_count):
+    """Initialize the extended experiment once per Streamlit session."""
+    if "sca_initial_cells" not in st.session_state:
+        st.session_state.sca_initial_cells = generate_balanced_cells(n=cell_count)
+    if "sca_syntax_pool" not in st.session_state:
+        st.session_state.sca_syntax_pool = extract_syntax_from_cells(
+            st.session_state.sca_initial_cells
+        )
+    if "sca_emitted" not in st.session_state:
+        st.session_state.sca_emitted = []
+    if "sca_memory_zone" not in st.session_state:
+        st.session_state.sca_memory_zone = MemoryZone()
+    if "sca_output_zone" not in st.session_state:
+        st.session_state.sca_output_zone = OutputZone(capacity=3, activation_threshold=0.5)
+    if "sca_visualization_cache" not in st.session_state:
+        st.session_state.sca_visualization_cache = {}
+
+
+_ensure_session_state(num_cells)
+initial_cells = st.session_state.sca_initial_cells
+syntax_pool = st.session_state.sca_syntax_pool
+emitted = st.session_state.sca_emitted
 
 # =========================
 # 💾 保存・読込：サイドバー統合版
@@ -64,8 +87,10 @@ with col2:
         meta_file = f"save/{save_name}_meta.json"
 
         if os.path.exists(cell_file) and os.path.exists(syntax_file):
-            initial_cells = quicksave.load_cells_from_jsonl(cell_file)
-            syntax_pool = quicksave.load_syntaxes_from_jsonl(syntax_file)
+            st.session_state.sca_initial_cells = quicksave.load_cells_from_jsonl(cell_file)
+            st.session_state.sca_syntax_pool = quicksave.load_syntaxes_from_jsonl(syntax_file)
+            initial_cells = st.session_state.sca_initial_cells
+            syntax_pool = st.session_state.sca_syntax_pool
 
             if os.path.exists(meta_file):
                 meta = quicksave.load_metadata(meta_file)
@@ -74,7 +99,6 @@ with col2:
             else:
                 st.session_state.total_generations = 0
 
-            cell_dict = {c.id: c for c in initial_cells}
             st.sidebar.success(f"save/{save_name} を読み込みました。")
             st.sidebar.info(f"🧮 累計進化世代数：{st.session_state.total_generations}")
         else:
@@ -84,8 +108,11 @@ with col2:
 # =========================
 
 # 🎯 cell_dict をこのタイミングで定義しておく（evaluate_syntaxで使用）
+initial_cells = st.session_state.sca_initial_cells
+syntax_pool = st.session_state.sca_syntax_pool
+emitted = st.session_state.sca_emitted
 cell_dict = {c.id: c for c in initial_cells}
-mz = MemoryZone()
+mz = st.session_state.sca_memory_zone
 
 # 🎲 構文スコア評価（初期）
 for syn in syntax_pool:
@@ -105,11 +132,8 @@ with col_left:
         } for c in initial_cells])
         st.dataframe(df, use_container_width=True)
 
-if 'emitted' not in st.session_state:
-    st.session_state.emitted = []
-
 # 発話構文の保存先を更新
-emitted = st.session_state.emitted
+emitted = st.session_state.sca_emitted
 
 with col_right:
     with st.expander("🗣️ 発話構文", expanded=True):
@@ -141,7 +165,7 @@ st.markdown(f"🧮 累計進化世代数：**{st.session_state.total_generations
 # =========================
 # 🔁 進化操作＋出力
 # =========================
-ost = OutputZone(capacity=3, activation_threshold=0.5)
+ost = st.session_state.sca_output_zone
 
 with st.expander("⚙️ 操作パネル（進化・思考・淘汰）", expanded=True):
     col1, col2 = st.columns(2)
@@ -158,8 +182,12 @@ with st.expander("⚙️ 操作パネル（進化・思考・淘汰）", expande
                     new_output = ost.emit()
                     for syn in new_output:
                         mz.store(syn, current_gen=st.session_state.total_generations)
-                    emitted += new_output
-                    st.session_state.emitted += new_output  # セッションに記録
+                    existing_sids = {syn.sid for syn in st.session_state.sca_emitted}
+                    for syn in new_output:
+                        if syn.sid not in existing_sids:
+                            st.session_state.sca_emitted.append(syn)
+                            existing_sids.add(syn.sid)
+                    emitted = st.session_state.sca_emitted
                     break
                 generation = evolve_generation_with_tags(generation, cell_dict, top_k=top_k, current_gen=st.session_state.total_generations)
                 st.session_state.total_generations += 1
@@ -168,10 +196,16 @@ with st.expander("⚙️ 操作パネル（進化・思考・淘汰）", expande
         if st.button("🔄 内的思考ループ"):
             trigger_tags = expand_tags([t for syn in emitted for t in syn.tags])
             st.markdown(f"🔍 **トリガータグ（展開後）**: {trigger_tags}")
-            emitted = simulate_thought_cycle(emitted, cell_dict, mz, ost)
-            if emitted:
+            new_output = simulate_thought_cycle(emitted, cell_dict, mz, ost)
+            existing_sids = {syn.sid for syn in st.session_state.sca_emitted}
+            for syn in new_output:
+                if syn.sid not in existing_sids:
+                    st.session_state.sca_emitted.append(syn)
+                    existing_sids.add(syn.sid)
+            emitted = st.session_state.sca_emitted
+            if new_output:
                 st.subheader("🧠 発話構文（思考ループ）")
-                for syn in emitted:
+                for syn in new_output:
                     st.markdown(f"→ {linearize_syntax(syn, cell_dict)}")
             else:
                 st.warning("思考ループからの発話はありませんでした。")
@@ -212,25 +246,58 @@ fig_size=(8, 3)
 col1, col2 = st.columns(2)
 with col1:
     #st.markdown(f"🧭 Semantic Cluster Map")
-    from viz.cluster_map import visualize_syntax_clusters
     tag_index = {tag: i for i, tag in enumerate(sorted({tag for syn in syntax_pool for tag in syn.tags}))}
-    visualize_syntax_clusters(syntax_pool, tag_index, use_streamlit=True, figsize=fig_size)
+    cluster_signature = (
+        syntax_signature(syntax_pool, include_score=False),
+        tuple(sorted(tag_index.items())),
+    )
+    cluster_figure = get_cached_figure(
+        st.session_state.sca_visualization_cache,
+        "cluster",
+        cluster_signature,
+        lambda: visualize_syntax_clusters(
+            syntax_pool, tag_index, use_streamlit=False, figsize=fig_size
+        ),
+    )
+    st.pyplot(cluster_figure)
 
 with col2:
     #st.markdown(f"🌱 構文進化系譜")
-    from viz.genealogy_plot import draw_syntax_genealogy
-    draw_syntax_genealogy(syntax_pool + emitted, use_streamlit=True, figsize=fig_size)
+    genealogy_input = syntax_pool + emitted
+    genealogy_figure = get_cached_figure(
+        st.session_state.sca_visualization_cache,
+        "genealogy",
+        syntax_signature(genealogy_input, include_score=False),
+        lambda: draw_syntax_genealogy(
+            genealogy_input, use_streamlit=False, figsize=fig_size
+        ),
+    )
+    st.pyplot(genealogy_figure)
 
 col3, col4 = st.columns(2)
 
 with col3:
     #st.markdown(f"🕸️ 意味タグ共起ネットワーク")
-    from viz.cooccurrence_net import draw_tag_cooccurrence_network
-    draw_tag_cooccurrence_network(syntax_pool + emitted, use_streamlit=True, figsize=fig_size)
+    cooccurrence_figure = get_cached_figure(
+        st.session_state.sca_visualization_cache,
+        "cooccurrence",
+        syntax_signature(genealogy_input, include_score=False),
+        lambda: draw_tag_cooccurrence_network(
+            genealogy_input, use_streamlit=False, figsize=fig_size
+        ),
+    )
+    st.pyplot(cooccurrence_figure)
 
 with col4:
     #st.markdown(f"📶 スコア出力ヒートマップ")
-    from viz.score_heatmap import draw_score_heatmap
-    draw_score_heatmap(emitted, all_tags, use_streamlit=True, figsize=fig_size)
+    heatmap_figure = get_cached_figure(
+        st.session_state.sca_visualization_cache,
+        "heatmap",
+        (syntax_signature(emitted, include_score=True), tuple(all_tags)),
+        lambda: draw_score_heatmap(
+            emitted, all_tags, use_streamlit=False, figsize=fig_size
+        ),
+    )
+    st.pyplot(heatmap_figure)
 
 #SCA GUI+ v0.3.1 by KiNoTch
