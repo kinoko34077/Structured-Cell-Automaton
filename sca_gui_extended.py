@@ -1,7 +1,7 @@
 # ◆sca_gui_extended.py
 
 import streamlit as st
-import os
+from pathlib import Path
 
 from core import Cell, Syntax, OutputZone, linearize_syntax, MemoryZone
 from engine import (
@@ -15,6 +15,8 @@ from engine import (
 
 from tagging import map_sentence_to_tags, expand_tags
 from save import quicksave
+
+SAVE_ROOT = Path(__file__).resolve().parent / "save"
 
 from project.ui_helpers import get_cached_figure, syntax_signature
 from viz.cluster_map import visualize_syntax_clusters
@@ -99,23 +101,31 @@ col1, col2 = st.sidebar.columns(2)
 
 with col1:
     if st.button("📥 保存"):
-        quicksave.save_cells_to_jsonl(initial_cells, f"save/{save_name}_cells.jsonl")
-        quicksave.save_syntaxes_to_jsonl(syntax_pool + emitted, f"save/{save_name}_syntax.jsonl")
-        quicksave.save_metadata(f"save/{save_name}_meta.json", {
-            "total_generations": st.session_state.total_generations
-        })
-        st.sidebar.success(f"save/{save_name} に保存しました。")
+        try:
+            quicksave.save_snapshot(
+                SAVE_ROOT,
+                save_name,
+                initial_cells,
+                syntax_pool + emitted,
+                {"total_generations": st.session_state.total_generations},
+            )
+        except (quicksave.QuicksaveError, OSError) as exc:
+            st.sidebar.error(f"❌ 保存できません: {exc}")
+        else:
+            st.sidebar.success(f"save/{save_name} に保存しました。")
 
 with col2:
     if st.button("📤 読込"):
-        cell_file = f"save/{save_name}_cells.jsonl"
-        syntax_file = f"save/{save_name}_syntax.jsonl"
-        meta_file = f"save/{save_name}_meta.json"
-
-        if os.path.exists(cell_file) and os.path.exists(syntax_file):
-            st.session_state.sca_initial_cells = quicksave.load_cells_from_jsonl(cell_file)
-            st.session_state.sca_syntax_pool = quicksave.load_syntaxes_from_jsonl(syntax_file)
-            st.session_state.sca_cell_count = len(st.session_state.sca_initial_cells)
+        try:
+            loaded_cells, loaded_syntaxes, meta = quicksave.load_snapshot(
+                SAVE_ROOT, save_name
+            )
+        except (quicksave.QuicksaveError, OSError) as exc:
+            st.sidebar.error(f"❌ 読込できません: {exc}")
+        else:
+            st.session_state.sca_initial_cells = loaded_cells
+            st.session_state.sca_syntax_pool = loaded_syntaxes
+            st.session_state.sca_cell_count = len(loaded_cells)
             st.session_state.pop("sca_pending_cell_count", None)
             st.session_state.sca_emitted = []
             st.session_state.sca_memory_zone = MemoryZone()
@@ -123,20 +133,12 @@ with col2:
                 capacity=3, activation_threshold=0.5
             )
             st.session_state.sca_visualization_cache = {}
-            initial_cells = st.session_state.sca_initial_cells
-            syntax_pool = st.session_state.sca_syntax_pool
-
-            if os.path.exists(meta_file):
-                meta = quicksave.load_metadata(meta_file)
-                st.session_state.total_generations = meta.get("total_generations", 0)
-                st.success(f"✅ 読込成功 / 世代: {st.session_state.total_generations}")
-            else:
-                st.session_state.total_generations = 0
-
+            st.session_state.total_generations = meta.get("total_generations", 0)
+            initial_cells = loaded_cells
+            syntax_pool = loaded_syntaxes
+            st.success(f"✅ 読込成功 / 世代: {st.session_state.total_generations}")
             st.sidebar.success(f"save/{save_name} を読み込みました。")
             st.sidebar.info(f"🧮 累計進化世代数：{st.session_state.total_generations}")
-        else:
-            st.sidebar.error("❌ 指定ファイルが見つかりません。")
 # =========================
 # 📊 状態情報表示エリア
 # =========================

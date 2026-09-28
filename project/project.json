@@ -36,14 +36,14 @@
     },
     "test": {
       "exec": "python",
-      "args": ["-m", "unittest", "discover", "-s", "project/tests", "-v"],
+      "args": ["project/tools/run_tests.py"],
       "cwd": ".",
       "forward_args": false
     },
     "build": "",
     "verify": {
       "exec": "python",
-      "args": ["-m", "unittest", "discover", "-s", "project/tests", "-v"],
+      "args": ["project/tools/run_tests.py"],
       "cwd": ".",
       "forward_args": false
     },

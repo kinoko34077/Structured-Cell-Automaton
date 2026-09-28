@@ -16,6 +16,10 @@ syntax generation, extraction, evolution, scoring, and visualization.
 5. No Domain file is moved merely to satisfy the Base structure.
 6. Memory-age pruning is defined only by generation difference; the default maximum age is 60 generations and is exposed through a named policy constant/helper.
 7. The Streamlit session maintains the current generation and stamps memories when they are stored.
+8. Quicksave names are logical identifiers, not paths: 1-128 ASCII letters/digits/`_`/`-`, beginning with a letter or digit; Windows reserved device names are rejected.
+9. A new quicksave is committed by immutable generation files plus one atomically replaced manifest. The manifest generation and SHA-256 values define the only accepted multi-file snapshot.
+10. A failed pre-publication save leaves the previously published manifest authoritative. Loading validates the complete generation before the GUI replaces any session-owned experiment state.
+11. Existing legacy `<name>_cells.jsonl` / `<name>_syntax.jsonl` / optional `<name>_meta.json` saves remain readable when no manifest exists; new saves use the manifest format.
 
 ## Ownership boundary
 

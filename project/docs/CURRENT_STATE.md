@@ -24,6 +24,9 @@ Last verified: 2026-09-27 — Draft PR #14 / follow-up Issue #15 exact-head veri
 - Extended-GUI visualization builders support `show=False`, so Streamlit-owned cached rendering does not open or block on Matplotlib windows; standalone callers retain the default display behavior
 - Score, generation, and similarity pruning return deterministic removed counts that the UI reports as effect magnitude or explicit no-op
 - Evolution actions report completion with either emitted output or an explicit no-emission result
+- Quicksave persistence uses immutable generation files plus an atomically replaced manifest with SHA-256 component verification; interrupted saves keep the prior manifest authoritative.
+- Quicksave save names are validated as logical identifiers and cannot contain path separators, traversal forms, absolute-path syntax, or Windows reserved device names.
+- Snapshot loads validate all cells/syntax/meta bytes before Streamlit session state changes; legacy `save_001`-style three-file saves remain readable when no manifest is present.
 
 ## Default state
 
@@ -38,6 +41,7 @@ Last verified: 2026-09-27 — Draft PR #14 / follow-up Issue #15 exact-head veri
 - Changing the extended-GUI cell-count slider does not mutate the current experiment until the explicit apply action is selected.
 - Matplotlib figures remain Project-owned and cached only for the current Streamlit session; no persistence or visualization appearance semantics changed.
 - CI may emit Japanese-font warnings because the Linux runner does not provide the locally assumed `MS Gothic`; these warnings do not fail the current behavioral AppTest suite.
+- New quicksaves retain immutable generation files after later successful saves; the manifest selects the authoritative generation. Automatic generation garbage collection is not part of the current persistence contract.
 
 ## Next work
 
