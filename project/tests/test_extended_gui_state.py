@@ -4,6 +4,8 @@ from pathlib import Path
 
 from streamlit.testing.v1 import AppTest
 
+from save import quicksave
+
 
 APP_PATH = Path(__file__).resolve().parents[2] / "sca_gui_extended.py"
 EVOLVE_LABEL = "▶ 構文進化→評価→発話"
@@ -149,6 +151,31 @@ class ExtendedGuiStateTests(unittest.TestCase):
         app.slider[0].set_value(initial_count).run()
         self._assert_no_app_exception(app)
         self.assertNotIn("sca_pending_cell_count", app.session_state)
+
+    def test_corrupt_snapshot_load_does_not_partially_replace_session_state(self):
+        app = self._new_app()
+        self._assert_no_app_exception(app)
+        old_cells = app.session_state["sca_initial_cells"]
+        old_syntaxes = app.session_state["sca_syntax_pool"]
+        old_memory = app.session_state["sca_memory_zone"]
+        old_generation = app.session_state["total_generations"]
+        save_root = APP_PATH.parent / "save"
+        name = "issue16_corrupt_test"
+        result = quicksave.save_snapshot(save_root, name, old_cells, old_syntaxes, {"total_generations": 999})
+        paths = quicksave.generation_paths(save_root, name, result.generation)
+        paths["syntax"].write_text("{broken", encoding="utf-8")
+        try:
+            app.text_input[0].set_value(name)
+            self._button(app, LOAD_LABEL).click().run()
+            self._assert_no_app_exception(app)
+            self.assertIs(app.session_state["sca_initial_cells"], old_cells)
+            self.assertIs(app.session_state["sca_syntax_pool"], old_syntaxes)
+            self.assertIs(app.session_state["sca_memory_zone"], old_memory)
+            self.assertEqual(app.session_state["total_generations"], old_generation)
+        finally:
+            quicksave.manifest_path(save_root, name).unlink(missing_ok=True)
+            for component_path in paths.values():
+                component_path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":
