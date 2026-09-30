@@ -2,7 +2,7 @@
 
 Base version: `0.3.8`
 
-Last verified: 2026-09-27 — Draft PR #14 / follow-up Issue #15 exact-head verification at `f646ad74fb24026d7a30922e68eb12721120deff`
+Last verified: 2026-09-28 — quicksave integrity / save-root containment accepted through Issue #16 / merged PR #17; accepted main `ff2b4274002bfd02d3a824f278b8bafc4634787b`
 
 ## Implemented
 
@@ -66,7 +66,8 @@ Last verified: 2026-09-27 — Draft PR #14 / follow-up Issue #15 exact-head veri
 - Issue #3 extended GUI focused AppTest and full Project unittest suite: session state, load persistence, duplicate-append regression, and figure-cache reuse pass on the maintenance branch
 - Issue #15 RED: cell-count control and renderer side-effect regressions reproduced from PR #14 review
 - Issue #15 GREEN: explicit cell-count apply, side-effect-free renderer path, and full Project verification pass on the maintenance branch
-- Current branch verification: `python -m unittest discover -s project/tests -v` — 15 passed; `knt.cmd doctor` — OK; `knt.cmd base-check` — OK; `knt.cmd verify` — 15 passed; Python compilation — OK
+- Quicksave integrity / containment accepted head `c6ff59f96418d66e6fd0157fc3545624ca9be2ae`: prior clean local `knt verify` 24/24; exact-head GitHub verify checks `109156836231` and `109156749629` SUCCESS; Formal Review `5345200446` reported no blocking findings
+- PR #17 merged that reviewed quicksave repair as accepted main `ff2b4274002bfd02d3a824f278b8bafc4634787b`
 
 Current AppTest coverage exercises:
 - `初回進化・発話` followed by `内的思考ループ実行` across Streamlit reruns without losing memory state;
