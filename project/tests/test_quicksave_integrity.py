@@ -92,6 +92,56 @@ class QuicksaveIntegrityTests(unittest.TestCase):
         )
         self.assertEqual(self._loaded_ids(), (["c1"], ["s1"], self.meta_a))
 
+    def test_semantic_validation_rejects_json_valid_metadata_cell_syntax_and_reference(self):
+        fixtures = [
+            (
+                "bad_meta",
+                self.cells_a,
+                self.syntax_a,
+                {"total_generations": "oops"},
+            ),
+            (
+                "bad_cell",
+                [Cell(id="c1", position=(0, 0), activation="oops")],
+                self.syntax_a,
+                self.meta_a,
+            ),
+            (
+                "bad_syntax",
+                self.cells_a,
+                [Syntax(sid="s1", cell_ids="c1", score=0.5)],
+                self.meta_a,
+            ),
+            (
+                "bad_reference",
+                self.cells_a,
+                [Syntax(sid="s1", cell_ids=["missing"], score=0.5)],
+                self.meta_a,
+            ),
+        ]
+        for name, cells, syntaxes, meta in fixtures:
+            with self.subTest(name=name):
+                quicksave.save_snapshot(self.root, name, cells, syntaxes, meta)
+                with self.assertRaises(quicksave.SnapshotIntegrityError):
+                    quicksave.load_snapshot(self.root, name)
+
+    def test_semantic_validation_applies_to_legacy_snapshot(self):
+        name = "legacy_bad"
+        (self.root / f"{name}_cells.jsonl").write_text(
+            "".join(json.dumps(cell.__dict__, ensure_ascii=False) + "\n" for cell in self.cells_a),
+            encoding="utf-8",
+        )
+        (self.root / f"{name}_syntax.jsonl").write_text(
+            "".join(json.dumps(syntax.__dict__, ensure_ascii=False) + "\n" for syntax in self.syntax_a),
+            encoding="utf-8",
+        )
+        (self.root / f"{name}_meta.json").write_text(
+            json.dumps({"total_generations": -1}),
+            encoding="utf-8",
+        )
+        with self.assertRaises(quicksave.SnapshotIntegrityError):
+            quicksave.load_snapshot(self.root, name)
+
     def test_hash_mismatch_rejects_tampered_or_mixed_generation(self):
         result_a = quicksave.save_snapshot(
             self.root, "save_001", self.cells_a, self.syntax_a, self.meta_a
