@@ -152,6 +152,38 @@ class ExtendedGuiStateTests(unittest.TestCase):
         self._assert_no_app_exception(app)
         self.assertNotIn("sca_pending_cell_count", app.session_state)
 
+    def test_semantically_invalid_snapshot_does_not_replace_session_state(self):
+        app = self._new_app()
+        self._assert_no_app_exception(app)
+        old_cells = app.session_state["sca_initial_cells"]
+        old_syntaxes = app.session_state["sca_syntax_pool"]
+        old_memory = app.session_state["sca_memory_zone"]
+        old_output = app.session_state["sca_output_zone"]
+        old_generation = app.session_state["total_generations"]
+        save_root = APP_PATH.parent / "save"
+        name = "issue20_semantic_invalid"
+        result = quicksave.save_snapshot(
+            save_root,
+            name,
+            old_cells,
+            old_syntaxes,
+            {"total_generations": "oops"},
+        )
+        paths = quicksave.generation_paths(save_root, name, result.generation)
+        try:
+            app.text_input[0].set_value(name)
+            self._button(app, LOAD_LABEL).click().run()
+            self._assert_no_app_exception(app)
+            self.assertIs(app.session_state["sca_initial_cells"], old_cells)
+            self.assertIs(app.session_state["sca_syntax_pool"], old_syntaxes)
+            self.assertIs(app.session_state["sca_memory_zone"], old_memory)
+            self.assertIs(app.session_state["sca_output_zone"], old_output)
+            self.assertEqual(app.session_state["total_generations"], old_generation)
+        finally:
+            quicksave.manifest_path(save_root, name).unlink(missing_ok=True)
+            for component_path in paths.values():
+                component_path.unlink(missing_ok=True)
+
     def test_corrupt_snapshot_load_does_not_partially_replace_session_state(self):
         app = self._new_app()
         self._assert_no_app_exception(app)

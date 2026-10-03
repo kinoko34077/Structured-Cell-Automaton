@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import os
 import re
 import tempfile
@@ -181,6 +182,93 @@ def _decode_meta(payload: bytes) -> dict:
     return data
 
 
+def _is_finite_number(value: object) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(float(value))
+    )
+
+
+def _validate_string_list(value: object, label: str) -> None:
+    if not isinstance(value, list) or any(not isinstance(item, str) for item in value):
+        raise SnapshotIntegrityError(f"{label} must be a list of strings")
+
+
+def _validate_snapshot_semantics(cells, syntaxes, meta: dict) -> None:
+    cell_ids: set[str] = set()
+    for index, cell in enumerate(cells):
+        label = f"cells[{index}]"
+        if not isinstance(cell.id, str) or not cell.id:
+            raise SnapshotIntegrityError(f"{label}.id must be a non-empty string")
+        if cell.id in cell_ids:
+            raise SnapshotIntegrityError(f"duplicate Cell id: {cell.id}")
+        cell_ids.add(cell.id)
+
+        if (
+            not isinstance(cell.position, (list, tuple))
+            or len(cell.position) != 2
+            or any(not _is_finite_number(value) for value in cell.position)
+        ):
+            raise SnapshotIntegrityError(
+                f"{label}.position must contain exactly two finite numbers"
+            )
+        if cell.syntax_id is not None and not isinstance(cell.syntax_id, str):
+            raise SnapshotIntegrityError(f"{label}.syntax_id must be a string or null")
+        if not _is_finite_number(cell.activation):
+            raise SnapshotIntegrityError(f"{label}.activation must be a finite number")
+        _validate_string_list(cell.meaning_tags, f"{label}.meaning_tags")
+        _validate_string_list(cell.history, f"{label}.history")
+
+    syntax_ids: set[str] = set()
+    for index, syntax in enumerate(syntaxes):
+        label = f"syntax[{index}]"
+        if not isinstance(syntax.sid, str) or not syntax.sid:
+            raise SnapshotIntegrityError(f"{label}.sid must be a non-empty string")
+        if syntax.sid in syntax_ids:
+            raise SnapshotIntegrityError(f"duplicate Syntax sid: {syntax.sid}")
+        syntax_ids.add(syntax.sid)
+
+        _validate_string_list(syntax.cell_ids, f"{label}.cell_ids")
+        missing_cell_ids = [cell_id for cell_id in syntax.cell_ids if cell_id not in cell_ids]
+        if missing_cell_ids:
+            raise SnapshotIntegrityError(
+                f"{label}.cell_ids reference missing Cells: {missing_cell_ids}"
+            )
+        if not _is_finite_number(syntax.score):
+            raise SnapshotIntegrityError(f"{label}.score must be a finite number")
+        if syntax.meaning_cluster is not None and not isinstance(syntax.meaning_cluster, str):
+            raise SnapshotIntegrityError(
+                f"{label}.meaning_cluster must be a string or null"
+            )
+        if not _is_finite_number(syntax.created_at) or syntax.created_at < 0:
+            raise SnapshotIntegrityError(
+                f"{label}.created_at must be a non-negative finite number"
+            )
+        if syntax.parent_sid is not None and not isinstance(syntax.parent_sid, str):
+            raise SnapshotIntegrityError(f"{label}.parent_sid must be a string or null")
+        _validate_string_list(syntax.tags, f"{label}.tags")
+        if (
+            not isinstance(syntax.generation_stamp, int)
+            or isinstance(syntax.generation_stamp, bool)
+            or syntax.generation_stamp < 0
+        ):
+            raise SnapshotIntegrityError(
+                f"{label}.generation_stamp must be a non-negative integer"
+            )
+
+    if "total_generations" in meta:
+        total_generations = meta["total_generations"]
+        if (
+            not isinstance(total_generations, int)
+            or isinstance(total_generations, bool)
+            or total_generations < 0
+        ):
+            raise SnapshotIntegrityError(
+                "metadata.total_generations must be a non-negative integer"
+            )
+
+
 def _load_manifest_snapshot(root: Path, name: str, path: Path):
     try:
         manifest = json.loads(path.read_text(encoding="utf-8"))
@@ -233,8 +321,11 @@ def load_snapshot(save_root, save_name):
     root = _resolved_root(save_root)
     target = manifest_path(root, name)
     if target.is_file():
-        return _load_manifest_snapshot(root, name, target)
-    return _load_legacy_snapshot(root, name)
+        snapshot = _load_manifest_snapshot(root, name, target)
+    else:
+        snapshot = _load_legacy_snapshot(root, name)
+    _validate_snapshot_semantics(*snapshot)
+    return snapshot
 
 
 def save_cells_to_jsonl(cells, filepath):

@@ -26,7 +26,7 @@ Last verified: 2026-09-28 — quicksave integrity / save-root containment accept
 - Evolution actions report completion with either emitted output or an explicit no-emission result
 - Quicksave persistence uses immutable generation files plus an atomically replaced manifest with SHA-256 component verification; interrupted saves keep the prior manifest authoritative.
 - Quicksave save names are validated as logical identifiers and cannot contain path separators, traversal forms, absolute-path syntax, or Windows reserved device names.
-- Snapshot loads validate all cells/syntax/meta bytes before Streamlit session state changes; legacy `save_001`-style three-file saves remain readable when no manifest is present.
+- Snapshot loads validate all cells/syntax/meta bytes **and semantic runtime shape** before Streamlit session state changes; manifest-backed and legacy `save_001`-style saves share the same semantic validator. Validation covers Cell/Syntax runtime field types, finite numeric fields, non-negative generation counters/stamps, duplicate IDs, and Syntax -> Cell references; legacy saves remain readable when valid.
 
 ## Default state
 
@@ -68,6 +68,7 @@ Last verified: 2026-09-28 — quicksave integrity / save-root containment accept
 - Issue #15 GREEN: explicit cell-count apply, side-effect-free renderer path, and full Project verification pass on the maintenance branch
 - Quicksave integrity / containment accepted head `c6ff59f96418d66e6fd0157fc3545624ca9be2ae`: prior clean local `knt verify` 24/24; exact-head GitHub verify checks `109156836231` and `109156749629` SUCCESS; Formal Review `5345200446` reported no blocking findings
 - PR #17 merged that reviewed quicksave repair as accepted main `ff2b4274002bfd02d3a824f278b8bafc4634787b`
+- Issue #20 semantic-validation TDD: RED Verify `37122855052` failed at Project verification on JSON-valid malformed snapshot fixtures; GREEN exact-head Verify `37122966149` passed after one shared `load_snapshot()` semantic validator was added.
 
 Current AppTest coverage exercises:
 - `初回進化・発話` followed by `内的思考ループ実行` across Streamlit reruns without losing memory state;
