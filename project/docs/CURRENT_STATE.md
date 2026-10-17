@@ -2,7 +2,7 @@
 
 Base version: `0.3.8`
 
-Last verified: 2026-09-28 — quicksave integrity / save-root containment accepted through Issue #16 / merged PR #17; accepted main `ff2b4274002bfd02d3a824f278b8bafc4634787b`
+Last verified: 2026-10-03 — semantic snapshot validation accepted through Issue #20 / merged PR #21; accepted main `32d9f9f0f0ae8f4ff35c8c1e4ac0c1f4eac3bfc6`
 
 ## Implemented
 
